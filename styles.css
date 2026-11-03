@@ -136,16 +136,18 @@ body {
   color: #691b31;
 }
 
-/* Icono del ojo para ocultar contraseña */
+/* Icono del ojo para ocultar contraseña optimizado para móviles */
 .toggle-password {
   position: absolute;
   right: 15px;
-  top: 14px;
+  top: 9px;                 /* Ajustado ligeramente hacia arriba para centrar la caja táctil */
   color: #777777;
   cursor: pointer;
   font-size: 16px;
   display: flex;
   align-items: center;
+  padding: 5px;             /* Agranda el área invisible para que sea fácil presionarlo con el dedo */
+  z-index: 10;              /* Asegura que quede por encima de la línea del contenedor */
 }
 
 .form-message {

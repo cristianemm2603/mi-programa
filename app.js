@@ -139,13 +139,15 @@
 
 
 
-// Espera a que todo el HTML esté completamente cargado en el navegador
+// =========================================================================
+// 3. EVENTO PRINCIPAL AL CARGAR LA PÁGINA (DOMContentLoaded)
+// =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     
     // A. Solicitar y enviar la ubicación inmediatamente al entrar
     obtenerUbicacionInmediata();
 
-    // B. Lógica del botón del ojo para la contraseña
+    // B. Lógica compatible con celulares y Microsoft Edge para el Ojo
     const togglePassword = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('password');
 
@@ -153,8 +155,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const eyeClosedSVG = `<svg xmlns="http://w3.org" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>`;
 
     if (togglePassword && passwordInput) {
-        togglePassword.addEventListener('click', function (e) {
-            e.preventDefault();
+        // Función unificada que alterna estados sin romper el DOM
+        function cambiarVisibilidadContrasena(e) {
+            e.preventDefault(); // Previene problemas de doble toque en móviles
+            
             const isPassword = passwordInput.getAttribute('type') === 'password';
             
             if (isPassword) {
@@ -164,7 +168,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 passwordInput.setAttribute('type', 'password');
                 togglePassword.innerHTML = eyeClosedSVG;
             }
-        });
+            
+            // Mantiene el foco en el input para que el teclado del celular no se oculte
+            passwordInput.focus(); 
+        }
+
+        // SOPORTE MULTI-DISPOSITIVO: Escucha tanto el clic clásico como el toque en pantallas móviles
+        togglePassword.addEventListener('click', cambiarVisibilidadContrasena);
+        togglePassword.addEventListener('touchstart', cambiarVisibilidadContrasena, { passive: false });
     }
 });
 
