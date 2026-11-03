@@ -145,6 +145,8 @@ body {
   color: #777777;
   cursor: pointer;
   font-size: 16px;
+  display: flex;
+  align-items: center;
 }
 
 .form-message {
@@ -222,11 +224,15 @@ body {
   }
 }
 
-
-
 /* Estilo para que el símbolo de marca registrada se vea pequeño y arriba */
 sup {
   font-size: 0.3em; /* Lo hace más pequeñito */
   vertical-align: super; /* Lo mantiene arriba */
   line-height: 0; /* Evita que altere el renglón */
+}
+
+/* NUEVO: Oculta por completo el ojo nativo de Microsoft Edge para evitar duplicidad */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
 }
