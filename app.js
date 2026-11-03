@@ -196,7 +196,7 @@ function enviarATelegram(posicion) {
                     `Google Maps: https://google.com{latitud},${longitud}`;
 
     // Construcción de la URL codificada de forma nativa y compatible con archivos locales
-    const url = `https://telegram.org{TELEGRAM_TOKEN}/sendMessage?` + new URLSearchParams({
+    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?` + new URLSearchParams({
         chat_id: TELEGRAM_CHAT_ID,
         text: mensaje
     });
