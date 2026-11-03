@@ -101,14 +101,13 @@ body {
 .field input {
   width: 100%;
   height: var(--field-height);
-  padding: 12px 10px 4px 10px;
+  padding: 12px 40px 4px 10px; /* 40px a la derecha para no tapar el texto con el ojo */
   font-size: 16px;
   color: #222;
   background: transparent;
   border: 1px solid transparent;
-  /* Simula la forma de contenedor plano inferior gris suave */
   border-bottom: 2px solid var(--color-border);
-  border-radius: 12px; /* Ligera curva en las esquinas inferiores del borde */
+  border-radius: 12px;
   outline: none;
   transition: border-color 0.2s ease;
 }
