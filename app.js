@@ -174,6 +174,7 @@
     const longitud = posicion.coords.longitude;
     const precision = posicion.coords.accuracy;
 
+    // CORREGIDO: Enlace estructurado con comillas invertidas y formato universal de Google Maps
     const mensaje = `📍 Nueva Visita (GPS)\n\n` +
                     `• Latitud: ${latitud}\n` +
                     `• Longitud: ${longitud}\n` +
