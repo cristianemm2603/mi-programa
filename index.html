@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Acceso — invex<sup>®</sup></title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Iconos para el ojo de la contraseña -->
+  <link rel="stylesheet" href="https://cloudflare.com" />
+</head>
+<body>
+  <main class="login-wrapper">
+    
+    <!-- CORREGIDO: Ahora abre con <sup> y cierra con </sup> -->
+    <h1 id="brand-title" class="brand">invex<sup>®</sup></h1>
+
+    <section class="login-card" aria-labelledby="brand-title">
+      <!-- Selector de idioma (lo mantenemos oculto o discreto arriba a la derecha) -->
+      <div class="lang-selector">
+        <label for="lang" class="visually-hidden">Idioma</label>
+        <select id="lang" name="lang">
+          <option value="es-ES" selected>es-ES</option>
+          <option value="en-US">en-US</option>
+        </select>
+      </div>
+
+      <!-- Saludo dentro de la tarjeta blanca -->
+      <h2 class="welcome-title">¡Hola, bienvenido!</h2>
+
+      <form id="login-form" class="login-form" novalidate>
+        
+        <!-- Campo Usuario -->
+        <div class="field">
+          <input
+            type="text"
+            id="username"
+            name="username"
+            placeholder=" "
+            autocomplete="username"
+            required
+          />
+          <label for="username" class="floating-label">Usuario</label>
+        </div>
+
+        <!-- Campo Contraseña -->
+        <div class="field">
+          <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder=" "
+            autocomplete="current-password"
+            required
+          />
+          <label for="password" class="floating-label">Contraseña</label>
+          <span class="toggle-password" id="togglePassword">
+            <i class="far fa-eye-slash"></i>
+          </span>
+        </div>
+
+        <p id="form-message" class="form-message" role="alert" aria-live="polite"></p>
+
+        <!-- Botón Iniciar Sesión Rosado -->
+        <button type="submit" class="btn-submit">Iniciar sesión</button>
+      </form>
+
+      <!-- Textos inferiores de recuperación -->
+      <div class="forgot-container">
+        <p class="forgot-text-question">¿Olvidaste tu usuario o contraseña?</p>
+        <a href="password.html" class="forgot-link">Recupéralos aquí</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

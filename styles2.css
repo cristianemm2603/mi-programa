@@ -1,0 +1,263 @@
+/* ============================================================
+   Pantalla: Recuperar Contraseña — Independiente (styles2.css)
+   Mantiene la gama exacta de colores de styles.css
+   ============================================================ */
+
+:root {
+  --color-brand: #ffffff;
+  --color-text: #333333;
+  --color-placeholder: #7c7c7c;
+  --color-border: #b3b8c2;          /* Línea inferior gris de la captura */
+  --color-btn: #ffb3c1;             /* Rosa suave exacto */
+  --color-btn-hover: #ffa1b2;
+  --color-btn-text: #ffffff;
+  --color-error: #c0392b;
+  --color-wine: #691b31;            /* Tono vino oscuro */
+  --font: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* { 
+  box-sizing: border-box; 
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font);
+  background: #ffffff;             /* Fondo blanco limpio e independiente */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ====== BARRA SUPERIOR (HEADER) ====== */
+.recovery-header {
+  width: 100%;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #ffffff;
+}
+
+.header-container {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+/* La figura '<' es la única que tiene la interacción y el color destacado */
+.back-figure {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: bold;
+  text-decoration: none;
+  color: #a31d3d;                   /* Color rojo/vino destacado para el símbolo */
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  user-select: none;
+}
+
+.back-figure:hover {
+  opacity: 0.7;
+  transform: translateX(-2px);      /* Efecto sutil de desplazamiento al pasar el cursor */
+}
+
+/* Título puro e intacto */
+.header-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333333;
+}
+
+/* ====== CONTENEDOR PRINCIPAL FLEXIBLE ====== */
+.recovery-wrapper {
+  min-height: calc(100vh - 54px);   /* Resta el alto exacto del header */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 24px;
+}
+
+.recovery-card {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;                     /* Expande la tarjeta para empujar el botón al fondo */
+}
+
+/* ====== TEXTOS ====== */
+.recovery-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1f2c;
+  text-align: left;
+  margin: 0 0 12px 0;
+}
+
+.recovery-subtitle {
+  font-size: 15px;
+  color: #5c616e;
+  text-align: left;
+  margin: 0 0 45px 0;
+  line-height: 1.4;
+}
+
+.recovery-subtitle strong {
+  color: #1a1f2c;
+  font-weight: 700;
+}
+
+/* Formulario flexible */
+.recovery-form {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+/* ====== INPUT FLOTANTE MINIMALISTA ====== */
+.field-recovery {
+  position: relative;
+  margin-bottom: 25px;
+}
+
+.field-recovery input {
+  width: 100%;
+  height: 52px;
+  padding: 20px 10px 4px 10px;
+  font-size: 16px;
+  color: #222;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--color-border);
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.field-recovery input:focus {
+  border-bottom-color: var(--color-wine); /* Cambia a vino al escribir */
+}
+
+/* Etiquetas flotantes en reposo */
+.floating-label-recovery {
+  position: absolute;
+  top: 16px;
+  left: 10px;
+  font-size: 16px;
+  color: var(--color-placeholder);
+  pointer-events: none;
+  transition: 0.2s ease all;
+}
+
+/* Animación de la etiqueta al activarse */
+.field-recovery input:focus ~ .floating-label-recovery,
+.field-recovery input:not(:placeholder-shown) ~ .floating-label-recovery {
+  top: 4px;
+  left: 10px;
+  font-size: 12px;
+  color: var(--color-wine);
+}
+
+/* ====== ENLACES SECUNDARIOS ====== */
+.secondary-forgot-container {
+  text-align: center;
+  margin-top: 15px;
+}
+
+.secondary-forgot-link {
+  font-size: 15px;
+  font-weight: 700;
+  color: #9c1c3a;                   /* Guinda de la interfaz original */
+  text-decoration: none;
+}
+
+.secondary-forgot-link:hover {
+  text-decoration: underline;
+}
+
+/* ====== BOTÓN CONTINUAR OVALADO ====== */
+.btn-continue {
+  width: 100%;
+  height: 52px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-btn-text);
+  background-color: var(--color-btn); /* Rosa suave exacto */
+  border: none;
+  border-radius: 26px;              /* Totalmente ovalado */
+  cursor: pointer;
+  margin-top: auto;                 /* Anclado abajo en dispositivos móviles */
+  margin-bottom: 10px;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-continue:hover {
+  background-color: var(--color-btn-hover);
+}
+
+.btn-continue:active {
+  transform: scale(0.99);
+}
+
+
+/* ====== RESPONSIVE (Ajustes de Escritorio) ====== */
+@media (min-width: 480px) {
+  body {
+    background: #f4f6f9;             /* Fondo gris neutro en pantallas grandes */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .recovery-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .header-container {
+    max-width: none;
+  }
+
+  .recovery-card {
+    background: #ffffff;
+    padding: 40px 30px;
+    border-radius: 28px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    max-height: 600px;
+    margin-top: 40px;
+  }
+
+  .btn-continue {
+    margin-top: 40px;               /* Separación controlada en PC */
+  }
+}
+
+
+/* ====== MENSAJES DE VALIDACIÓN DINÁMICOS ====== */
+.message-container {
+  min-height: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  margin: 15px 0;
+  transition: color 0.2s ease;
+}
+
+/* Color rojo para el error */
+.message-container.error-msg {
+  color: #c0392b; 
+}
+
+/* Color verde para el éxito */
+.message-container.success-msg {
+  color: #1e7e34; 
+}

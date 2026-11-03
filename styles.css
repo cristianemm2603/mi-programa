@@ -1,0 +1,232 @@
+:root {
+  --color-brand: #ffffff;           /* El título de arriba ahora es blanco */
+  --color-text: #333333;
+  --color-placeholder: #7c7c7c;     /* Color gris de la foto para las etiquetas */
+  --color-border: #999999;          /* Línea curva inferior */
+  --color-btn: #ffb3c1;             /* Rosa suave exacto de la foto */
+  --color-btn-hover: #ffa1b2;
+  --color-btn-text: #ffffff;
+  --color-error: #c0392b;
+  --field-height: 48px;
+  --font: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font);
+  /* Degradado de vino/guinda oscuro a morado sutil como el de tu imagen */
+  background: linear-gradient(180deg, #42101f 0%, #691b31 50%, #301124 100%);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Contenedor que empuja la tarjeta hacia abajo */
+.login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end; /* Alinea la tarjeta al fondo de la pantalla */
+  align-items: center;
+}
+
+/* El título gigante "Prueba" */
+.brand {
+  color: var(--color-brand);
+  font-weight: 500;
+  font-size: 72px;            /* Tamaño grande e imponente */
+  text-align: center;
+  margin-bottom: auto;        /* Empuja el título hacia arriba del todo */
+  margin-top: 60px;
+  user-select: none;
+}
+
+/* Quitamos definitivamente el símbolo ® anterior */
+.brand::after { content: none; }
+
+/* Tarjeta Blanca que sube desde el fondo */
+.login-card {
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 450px;           /* Se ajusta de forma elegante */
+  padding: 40px 30px;
+  /* Bordes redondeados solo arriba para simular que sale del suelo */
+  border-radius: 32px 32px 0 0; 
+  box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.15);
+  position: relative;
+  text-align: center;
+}
+
+/* Selector de Idioma flotante */
+.lang-selector {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+}
+
+.lang-selector select {
+  font-family: var(--font);
+  font-size: 12px;
+  color: #777;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+/* Título de bienvenida interno */
+.welcome-title {
+  font-size: 24px;
+  color: #1a1a1a;
+  font-weight: 600;
+  margin-bottom: 40px;
+  margin-top: 10px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Contenedor de inputs con la curva inferior de la foto */
+.field {
+  position: relative;
+  margin-bottom: 35px;
+}
+
+.field input {
+  width: 100%;
+  height: var(--field-height);
+  padding: 12px 10px 4px 10px;
+  font-size: 16px;
+  color: #222;
+  background: transparent;
+  border: 1px solid transparent;
+  /* Simula la forma de contenedor plano inferior gris suave */
+  border-bottom: 2px solid var(--color-border);
+  border-radius: 12px; /* Ligera curva en las esquinas inferiores del borde */
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.field input:focus {
+  border-bottom-color: #691b31; /* Cambia al tono vino al escribir */
+}
+
+/* Etiquetas flotantes en reposo */
+.floating-label {
+  position: absolute;
+  top: 14px;
+  left: 12px;
+  font-size: 16px;
+  color: var(--color-placeholder);
+  pointer-events: none;
+  transition: 0.2s ease all;
+}
+
+/* Animación que sube la etiqueta */
+.field input:focus ~ .floating-label,
+.field input:not(:placeholder-shown) ~ .floating-label {
+  top: -12px;
+  left: 5px;
+  font-size: 13px;
+  color: #691b31;
+}
+
+/* Icono del ojo para ocultar contraseña */
+.toggle-password {
+  position: absolute;
+  right: 15px;
+  top: 14px;
+  color: #777777;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.form-message {
+  min-height: 20px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--color-error);
+}
+
+/* Botón Iniciar Sesión Rosado de la imagen */
+.btn-submit {
+  width: 100%;
+  height: 50px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-btn-text);
+  background-color: var(--color-btn);
+  border: none;
+  border-radius: 25px;       /* Totalmente ovalado como la foto */
+  cursor: pointer;
+  margin-top: 10px;
+  margin-bottom: 30px;
+  transition: background-color 0.2s ease;
+}
+
+.btn-submit:hover {
+  background-color: var(--color-btn-hover);
+}
+
+/* Textos de recuperación inferiores */
+.forgot-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.forgot-text-question {
+  font-size: 14px;
+  color: #333333;
+  margin: 0;
+}
+
+.forgot-link {
+  font-size: 15px;
+  font-weight: 700;
+  color: #691b31;             /* Color vino oscuro destacado */
+  text-decoration: none;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Ajustes adaptables para pantallas de escritorio */
+@media (min-width: 480px) {
+  .login-wrapper {
+    justify-content: center; /* En PC se centra completo en lugar de irse al suelo */
+    padding: 40px 20px;
+  }
+  .login-card {
+    border-radius: 28px;    /* Tarjeta cerrada en pantallas grandes */
+  }
+  .brand {
+    margin-bottom: 40px;
+  }
+}
+
+
+
+/* Estilo para que el símbolo de marca registrada se vea pequeño y arriba */
+sup {
+  font-size: 0.3em; /* Lo hace más pequeñito */
+  vertical-align: super; /* Lo mantiene arriba */
+  line-height: 0; /* Evita que altere el renglón */
+}

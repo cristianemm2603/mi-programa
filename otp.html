@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verificación — invex</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="otp.css" />
+</head>
+<body>
+  <main class="otp-wrapper">
+    <section class="otp-card" aria-labelledby="otp-title">
+      <h1 id="otp-title" class="otp-title">Confirma tu identidad para vincular este dispositivo</h1>
+
+      <p class="otp-subtitle">
+        Ingresa el código que enviamos a tu correo y por SMS al número
+        <span id="masked-number">****85</span>
+      </p>
+
+      <form id="otp-form" class="otp-form" novalidate>
+        <div class="otp-inputs" id="otp-inputs" role="group" aria-label="Código de 6 dígitos">
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Dígito 1" />
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 2" />
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 3" />
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 4" />
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 5" />
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 6" />
+        </div>
+
+        <p class="otp-timer" id="otp-timer" aria-live="polite">El código vence en 02:00 minutos</p>
+        
+        <!-- CORRECCIÓN: Se añade el botón de reenvío dinámico que hacía falta -->
+        <button type="button" id="otp-resend" class="otp-resend-btn" style="display: none;">¿No recibiste el código? Reenviar</button>
+
+        <p id="otp-message" class="otp-message" role="alert" aria-live="polite"></p>
+
+        <button type="submit" id="otp-submit" class="otp-submit" disabled>Validar código</button>
+      </form>
+
+      <button type="button" id="logout-btn" class="otp-logout">Cerrar sesión</button>
+    </section>
+  </main>
+
+  <script src="otp.js"></script>
+</body>
+</html>

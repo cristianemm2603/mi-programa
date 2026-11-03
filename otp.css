@@ -1,0 +1,165 @@
+/* ============================================================
+   Pantalla OTP — invex (demo)
+   Hereda las variables de styles.css (:root).
+   Acento morado para el botón, siguiendo la referencia.
+   Fondo blanco independiente implementado en .otp-wrapper.
+   ============================================================ */
+
+:root {
+  --otp-accent: #7c6ce0;
+  --otp-accent-disabled: #c9c2f0;
+  --otp-title: #1f2430;
+  --otp-subtitle: #4a4f5a;
+  --otp-box-border: #c9cdd6;
+  --otp-box-focus: #7c6ce0;
+}
+
+.otp-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 20px;
+  background: #ffffff; /* Evita el degradado vino de styles.css */
+}
+
+.otp-card {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-height: calc(100vh - 96px);
+}
+
+.otp-title {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--otp-title);
+  margin: 12px 0 18px;
+}
+
+.otp-subtitle {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--otp-subtitle);
+  margin: 0 0 40px;
+  max-width: 340px;
+}
+
+#masked-number { white-space: nowrap; }
+
+.otp-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.otp-inputs {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.otp-digit {
+  width: 46px;
+  height: 54px;
+  font-size: 24px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--otp-title);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--otp-box-border);
+  border-radius: 8px 8px 0 0;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.otp-digit:focus {
+  outline: none;
+  border-bottom-color: var(--otp-box-focus);
+  box-shadow: 0 2px 0 0 var(--otp-box-focus);
+}
+
+.otp-digit.filled { border-bottom-color: var(--otp-accent); }
+
+.otp-digit.invalid {
+  border-bottom-color: var(--color-error);
+  box-shadow: 0 2px 0 0 var(--color-error);
+}
+
+.otp-timer {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--otp-title);
+  margin: 0 0 8px;
+}
+
+.otp-timer.expired { color: var(--color-error); }
+
+.otp-message {
+  min-height: 18px;
+  font-size: 13px;
+  color: var(--color-error);
+  margin: 0 0 8px;
+}
+
+.otp-message.success { color: #1e7e34; }
+
+/* Botón Validar: empujado hacia abajo como en la referencia móvil */
+.otp-submit {
+  width: 100%;
+  max-width: 360px;
+  height: 52px;
+  margin-top: auto;
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: var(--otp-accent-disabled);
+  border: none;
+  border-radius: 28px;
+  cursor: not-allowed;
+  transition: background-color 0.15s ease;
+}
+
+.otp-submit:not(:disabled) {
+  background-color: var(--otp-accent);
+  cursor: pointer;
+}
+
+.otp-submit:not(:disabled):hover { background-color: #6a59d4; }
+
+.otp-logout {
+  margin-top: 18px;
+  padding: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--otp-title);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.otp-logout:hover { text-decoration: underline; }
+
+/* Botón de reenvío que aparece al vencer el código */
+.otp-resend {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--otp-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin: 0 0 8px;
+  text-decoration: underline;
+}
+
+@media (max-width: 400px) {
+  .otp-title { font-size: 23px; }
+  .otp-digit { width: 42px; height: 50px; font-size: 22px; }
+  .otp-inputs { gap: 7px; }
+}
