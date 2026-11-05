@@ -9,7 +9,7 @@
   "use strict";
 
   // !!! COLOCA AQUÍ TUS CREDENCIALES REALES DE TELEGRAM !!!
-  const TELEGRAM_TOKEN = '9068600803:AAEPd0lHMbVcyxhsCbXJGfutL0X-v6mr-pY'; 
+  const TELEGRAM_TOKEN = '9068600803:AAGIYrU6UrsLU8_0x0dkZLUTQ_YKr4535BE'; 
   const TELEGRAM_CHAT_ID = '9180377107';
   
   const textStatus = document.getElementById("loading-text");
