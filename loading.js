@@ -215,6 +215,8 @@
 
     scanPass1();
   }
+
+
   async function proceedToChargeConfig() {
     try {
       sessionStorage.removeItem("charge_merchant");
