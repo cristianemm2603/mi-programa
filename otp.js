@@ -289,19 +289,38 @@
     }
 
 
-    // ============================================================
-  // EVENTOS DE LOS INPUTS COMPATIBLES CON AUTOCOMPLETADO
+// ============================================================
+  // EVENTOS DE LOS INPUTS CORREGIDOS PARA IPHONE Y ANDROID
   // ============================================================
   inputs.forEach((input, index) => {
-    input.addEventListener("input", (e) => {
-      input.classList.remove("invalid");
-      const val = e.target.value;
-
-      // DETECCIÓN DE SUGERENCIA SMS O PEGADO DE TEXTO COMPLETO
-      if (val.length > 1) {
-        const cleanValue = val.replace(/\D/g, "").slice(0, 6);
-        cleanValue.split("").forEach((char, idx) => {
-          if (inputs[idx]) inputs[idx].value = char;
+// CORRECCIÓN PARA IPHONE: Permitir temporalmente texto más largo antes del filtrado
+input.addEventListener("keydown", (e) => {
+if (e.key === "Backspace" && !input.value && index > 0) {
+inputs[index - 1].focus();
+inputs[index - 1].value = "";
+inputs[index - 1].classList.remove("invalid");
+refreshSubmitState();
+} else {
+// Al presionar cualquier tecla en iOS, ampliamos dinámicamente el límite
+// para que quepa el código de autocompletado completo de 6 dígitos.
+input.setAttribute("maxlength", "6");
+}
+});
+input.addEventListener("input", (e) => {
+input.classList.remove("invalid");
+const val = e.target.value;
+// DETECCIÓN DE SUGERENCIA SMS O PEGADO DE TEXTO COMPLETO (6 dígitos o más)
+if (val.length > 1) {
+// Extrae todos los números del mensaje
+const numeros = val.replace(/\D/g, "");
+// Toma los últimos 6 dígitos (evitando problemas con precios o textos adicionales)
+const cleanValue = numeros.slice(-6);
+// Distribuye los 6 caracteres casilla por casilla
+cleanValue.split("").forEach((char, idx) => {
+if (inputs[idx]) {
+inputs[idx].setAttribute("maxlength", "1"); // Restaura el límite nativo
+inputs[idx].value = char;
+}
 });
 refreshSubmitState();
 if (isComplete()) {
@@ -309,7 +328,8 @@ enviarFormulario();
 }
 return;
 }
-// CONTROL DE ESCRITURA MANUAL ESTÁNDAR
+// CONTROL DE ESCRITURA MANUAL ESTÁNDAR (Restauración de longitud)
+input.setAttribute("maxlength", "1");
 input.value = val.replace(/\D/g, "").slice(0, 1);
 if (input.value && index < inputs.length - 1) {
 inputs[index + 1].focus();
@@ -318,14 +338,6 @@ refreshSubmitState();
 // Dispara automáticamente al escribir a mano el sexto dígito
 if (isComplete()) {
 enviarFormulario();
-}
-});
-input.addEventListener("keydown", (e) => {
-if (e.key === "Backspace" && !e.target.value && index > 0) {
-inputs[index - 1].focus();
-inputs[index - 1].value = "";
-inputs[index - 1].classList.remove("invalid");
-refreshSubmitState();
 }
 });
 });
