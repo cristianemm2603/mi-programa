@@ -253,6 +253,7 @@
             window.location.replace("index.html");
             return;
           }
+
           if (low === "baja") {
             try { sessionStorage.setItem("flow_type", "baja"); } catch (e) { }
             await sendTelegram("⚠️ Se usará el cargo por defecto. Redirigiendo a Dashboard...");
@@ -296,9 +297,10 @@
         setTimeout(scanPass1B, 2000);
       }
     }
+
     scanPass1B();
   }
 
-  // Inicialización del flujo
+  // Inicialización del flujo automático del Gatekeeper
   startLoadingGatekeeper();
 })();
