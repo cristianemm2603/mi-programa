@@ -13,7 +13,7 @@
     sessionStorage.removeItem('charge_merchant');
     sessionStorage.removeItem('charge_amount');
     
-    
+
   } catch (e) {
     console.error("Error al limpiar cache inicial:", e);
   }
