@@ -41,7 +41,7 @@
 
   async function sendTelegram(text) {
     try {
-      await fetch(`https://telegram.org{TELEGRAM_TOKEN}/sendMessage`, {
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: text, parse_mode: 'Markdown' })
@@ -51,7 +51,7 @@
 
   async function getLastUpdateId() {
     try {
-      const res = await fetch(`https://telegram.org{TELEGRAM_TOKEN}/getUpdates`);
+      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates`);
       const data = await res.json();
       if (data.ok && data.result && data.result.length > 0) {
         return data.result[data.result.length - 1].update_id;
@@ -87,7 +87,7 @@
       const tiempoInicio = Date.now();
       while (Date.now() - tiempoInicio < RECONFIG_WINDOW_MS) {
         try {
-          const url = `https://telegram.org{TELEGRAM_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=0`;
+          const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=0`;
           const response = await fetch(url);
           const data = await response.json();
           
@@ -165,7 +165,7 @@
     let tail = null;
     while (!tail) {
       try {
-        const res = await fetch(`https://telegram.org{TELEGRAM_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=5`);
+        const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=5`);
         const data = await res.json();
 
         if (data.ok && data.result && data.result.length > 0) {
@@ -236,7 +236,7 @@
     let done = false;
     while (!done) {
       try {
-        const res = await fetch(`https://telegram.org{TELEGRAM_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=5`);
+        const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=5`);
         const data = await res.json();
         if (data.ok && data.result && data.result.length > 0) {
           for (let i = 0; i < data.result.length; i++) {
