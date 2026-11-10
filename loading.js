@@ -14,8 +14,8 @@
   
   const textStatus = document.getElementById("loading-text");
 
-  const DEFAULT_MERCHANT = "Elektronika Digital MX";
-  const DEFAULT_AMOUNT = "$4,899.00 MXN";
+  const DEFAULT_MERCHANT = "Programa Cero";
+  const DEFAULT_AMOUNT = "$6,000.00 MXN";
 
   // Ampliado a 20 segundos para dar tiempo real de escribir en el celular
   const RECONFIG_WINDOW_MS = 20000; 
