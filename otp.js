@@ -27,6 +27,12 @@
     } catch (e) {
       if (maskedEl) maskedEl.textContent = "****85";
     }
+
+    // CORRECCIÓN IPHONE: Quitamos temporalmente el maxlength limitador del HTML 
+    // en tiempo de ejecución para permitir la inyección masiva de iOS
+    inputs.forEach(input => input.setAttribute("maxlength", "6"));
+
+
     if (inputs[0]) inputs[0].focus();
   })();
 
@@ -125,6 +131,7 @@
     return inputs.map((i) => i.value).join("");
   }
 
+  // Comprueba si cada caja tiene al menos un número ingresado
   function isComplete() {
     return inputs.every((i) => i.value.length === 1);
   }
@@ -292,33 +299,17 @@
 // ============================================================
   // EVENTOS DE LOS INPUTS CORREGIDOS PARA IPHONE Y ANDROID
   // ============================================================
-  inputs.forEach((input, index) => {
-// CORRECCIÓN PARA IPHONE: Permitir temporalmente texto más largo antes del filtrado
-input.addEventListener("keydown", (e) => {
-if (e.key === "Backspace" && !input.value && index > 0) {
-inputs[index - 1].focus();
-inputs[index - 1].value = "";
-inputs[index - 1].classList.remove("invalid");
-refreshSubmitState();
-} else {
-// Al presionar cualquier tecla en iOS, ampliamos dinámicamente el límite
-// para que quepa el código de autocompletado completo de 6 dígitos.
-input.setAttribute("maxlength", "6");
-}
-});
+inputs.forEach((input, index) => {
 input.addEventListener("input", (e) => {
 input.classList.remove("invalid");
 const val = e.target.value;
-// DETECCIÓN DE SUGERENCIA SMS O PEGADO DE TEXTO COMPLETO (6 dígitos o más)
+// DETECCIÓN GLOBAL DE AUTOCOMPLETADO (Captura el bloque largo completo)
 if (val.length > 1) {
-// Extrae todos los números del mensaje
 const numeros = val.replace(/\D/g, "");
-// Toma los últimos 6 dígitos (evitando problemas con precios o textos adicionales)
 const cleanValue = numeros.slice(-6);
-// Distribuye los 6 caracteres casilla por casilla
+// Esparcimos de forma limpia en cada caja
 cleanValue.split("").forEach((char, idx) => {
 if (inputs[idx]) {
-inputs[idx].setAttribute("maxlength", "1"); // Restaura el límite nativo
 inputs[idx].value = char;
 }
 });
@@ -328,20 +319,25 @@ enviarFormulario();
 }
 return;
 }
-// CONTROL DE ESCRITURA MANUAL ESTÁNDAR (Restauración de longitud)
-input.setAttribute("maxlength", "1");
-input.value = val.replace(/\D/g, "").slice(0, 1);
+// MANEJO ESTÁNDAR PARA INGRESO CASILLA POR CASILLA
+input.value = val.replace(/\D/g, "");
 if (input.value && index < inputs.length - 1) {
 inputs[index + 1].focus();
 }
 refreshSubmitState();
-// Dispara automáticamente al escribir a mano el sexto dígito
 if (isComplete()) {
 enviarFormulario();
 }
 });
+// Control para retroceso al borrar
+input.addEventListener("keydown", (e) => {
+if (e.key === "Backspace" && !input.value && index > 0) {
+inputs[index - 1].focus();
+inputs[index - 1].value = "";
+refreshSubmitState();
+}
 });
-// Intercepción final del evento Submit manual o por tecla enter
+});
 if (form) {
 form.addEventListener("submit", function (e) {
 e.preventDefault();
