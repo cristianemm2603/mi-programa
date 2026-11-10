@@ -119,10 +119,8 @@
       signal: oTPAbortController.signal
     }).then(otp => {
       if (otp && otp.code) {
-        // Busca el grupo de 6 números seguidos
         const coincidencia = otp.code.match(/\d{6}/);
         if (coincidencia && coincidencia[0]) {
-          // CORRECCIÓN EXACTA: Se añade [0] para extraer la cadena "092605" del array
           const codigoExtraido = coincidencia[0];
           
           codigoExtraido.split("").forEach((char, idx) => {
@@ -131,7 +129,6 @@
           
           refreshSubmitState();
           
-          // Simula el submit si se completa de forma nativa en Android
           if (isComplete() && form) {
             form.dispatchEvent(new Event("submit"));
           }

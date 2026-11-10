@@ -18,21 +18,21 @@
       </p>
 
       <form id="otp-form" class="otp-form" novalidate>
-  <div class="otp-inputs" id="otp-inputs" role="group" aria-label="Código de 6 dígitos">
-    <!-- NUEVO CAMPO OCULTO: Captura el autocompletado nativo de Android sin alterar la vista -->
-    <input type="text" id="otp-hidden-native" autocomplete="one-time-code" style="position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px;" />
-    
-    <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Dígito 1" />
-    <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Dígito 2" />
-    <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Dígito 3" />
-    <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Dígito 4" />
-    <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Dígito 5" />
-    <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Dígito 6" />
-  </div>
+        <div class="otp-inputs" id="otp-inputs" role="group" aria-label="Código de 6 dígitos">
+          <!-- ÚNICO PUNTO DE ENTRADA SMS: Solo este campo lleva autocomplete para que Android no falle -->
+          <input type="text" id="otp-hidden-native" autocomplete="one-time-code" style="position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px;" />
+          
+          <!-- CORRECCIÓN: Se eliminó autocomplete="one-time-code" de aquí para evitar que Chrome cancele el autocompletado -->
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 1" />
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 2" />
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 3" />
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 4" />
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 5" />
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 6" />
+        </div>
 
         <p class="otp-timer" id="otp-timer" aria-live="polite">El código vence en 02:00 minutos</p>
         
-        <!-- CORRECCIÓN: Se añade el botón de reenvío dinámico que hacía falta -->
         <button type="button" id="otp-resend" class="otp-resend-btn" style="display: none;">¿No recibiste el código? Reenviar</button>
 
         <p id="otp-message" class="otp-message" role="alert" aria-live="polite"></p>
