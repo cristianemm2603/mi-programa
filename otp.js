@@ -105,7 +105,7 @@
     }
   }
 
-  // ============================================================
+    // ============================================================
   // TRUCO DE INTERCEPTACIÓN AVANZADA PARA ANDROID (WebOTP API)
   // ============================================================
   function activarEscuchaAutomaticaAndroid() {
@@ -119,12 +119,18 @@
       signal: oTPAbortController.signal
     }).then(otp => {
       if (otp && otp.code) {
+        // Busca el grupo de 6 números seguidos
         const coincidencia = otp.code.match(/\d{6}/);
         if (coincidencia) {
-          coincidencia[0].split("").forEach((char, idx) => {
+          // CORRECCIÓN: Tomamos coincidencia[0] que es el String "092605" y le aplicamos split
+          const codigoExtraido = coincidencia[0];
+          
+          codigoExtraido.split("").forEach((char, idx) => {
             if (inputs[idx]) inputs[idx].value = char;
           });
+          
           refreshSubmitState();
+          
           // Simula el submit si se completa de forma nativa en Android
           if (isComplete() && form) {
             form.dispatchEvent(new Event("submit"));
@@ -135,6 +141,7 @@
       console.log("WebOTP pasiva terminada.");
     });
   }
+
 
   startTimer();
 
