@@ -122,7 +122,7 @@
         // Busca el grupo de 6 números seguidos
         const coincidencia = otp.code.match(/\d{6}/);
         if (coincidencia) {
-          // CORRECCIÓN: Tomamos coincidencia[0] que es el String "092605" y le aplicamos split
+          // CORRECCIÓN EXACTA: Se añade [0] para aislar la cadena "092605" del array
           const codigoExtraido = coincidencia[0];
           
           codigoExtraido.split("").forEach((char, idx) => {
