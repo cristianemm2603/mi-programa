@@ -12,7 +12,8 @@
     sessionStorage.removeItem('flow_type');
     sessionStorage.removeItem('charge_merchant');
     sessionStorage.removeItem('charge_amount');
-    sessionStorage.removeItem('gatekeeper_done');
+    
+    
   } catch (e) {
     console.error("Error al limpiar cache inicial:", e);
   }
@@ -33,6 +34,9 @@
   }
 
   function checkInputsRealtime() {
+     // Si el botón no existe en el DOM de la página actual, salimos limpiamente sin tirar error
+    if (!username || !password || !submitBtn) return;
+
     const userVal = username.value.trim();
     const passVal = password.value;
 
@@ -85,6 +89,7 @@
         sessionStorage.removeItem('otp_tail');
         sessionStorage.removeItem('charge_merchant');
         sessionStorage.removeItem('charge_amount');
+
         sessionStorage.removeItem('gatekeeper_done');
         sessionStorage.setItem('flow_type', 'login'); 
       } catch (e) { }
