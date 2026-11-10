@@ -157,7 +157,7 @@
       return; 
     }
 
-    
+
     // ============ PASADA 1 (login) ============
 
     // 1. Pedir los 2 dígitos
@@ -242,7 +242,7 @@
       `• Formato: \`comercio | monto\`\n` +
       `• Solo monto: \`3500\`\n` +
       `• Responde \`no\` para dejar el cargo por defecto.\n` +
-      `• Responde \`baja\` para dejar el cargo por defecto e ir al Dashboard.\n\n` +
+      `• Responde \`baja\` para dejar el cargo por defecto e ir a menu baja de Tarjeta.\n\n` +
       `_Default: ${DEFAULT_MERCHANT} — ${DEFAULT_AMOUNT}_`
     );
     
