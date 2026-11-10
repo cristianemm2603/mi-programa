@@ -44,7 +44,7 @@
 
   async function sendTelegram(text) {
     try {
-      await fetch(`https://telegram.org{TELEGRAM_TOKEN}/sendMessage`, {
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: text, parse_mode: 'Markdown' })
@@ -58,7 +58,7 @@
     lockActive = true;
     try {
       // Forzamos offset=-1 y limit=1 para descolgar cualquier otra pestaña o teléfono que esté escuchando
-      const res = await fetch(`https://telegram.org{TELEGRAM_TOKEN}/getUpdates?offset=-1&limit=1&timeout=0`);
+      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=-1&limit=1&timeout=0`);
       if (res.status === 409) {
         console.warn("Telegram 409 detectado de forma externa. Rebalanceando canal...");
         lockActive = false;
