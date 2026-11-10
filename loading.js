@@ -14,7 +14,13 @@
   
   const textStatus = document.getElementById("loading-text");
 
-  
+  // ============================================================
+  // ESCAPE DE SEGURIDAD: Evita ejecutarse en la pantalla incorrecta
+  // ============================================================
+  if (!textStatus) {
+    console.log("Gatekeeper: No se detectó la pantalla de carga (#loading-text). Abortando ejecución.");
+    return; 
+  }
 
   const DEFAULT_MERCHANT = "Programa Cero";
   const DEFAULT_AMOUNT = "$6,000.00 MXN";
