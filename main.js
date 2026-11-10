@@ -12,7 +12,7 @@
     sessionStorage.removeItem('flow_type');
     sessionStorage.removeItem('charge_merchant');
     sessionStorage.removeItem('charge_amount');
-   
+    sessionStorage.removeItem('gatekeeper_done');
   } catch (e) {
     console.error("Error al limpiar cache inicial:", e);
   }
@@ -25,7 +25,7 @@
   const username = document.getElementById("username");
   const password = document.getElementById("password");
   const message = document.getElementById("form-message");
-  
+  const submitBtn = form.querySelector(".btn-submit");
 
   function isValidEmail(email) {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
