@@ -391,6 +391,11 @@ input.setAttribute("maxlength", "6");
 if (inputs[0]) inputs[0].focus();
 activarEscuchaAutomaticaAndroid(); // Volvemos a escuchar si rechaza el código
 }
+}
+if (form) {
+form.addEventListener("submit", function (e) {
+e.preventDefault();
+enviarFormulario();
 });
 }
 })();
