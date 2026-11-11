@@ -173,10 +173,16 @@
       signal: oTPAbortController.signal
     }).then(otp => {
       if (otp && otp.code) {
-        // Al presionar el botón azul "Permitir" de la ventana nativa
         rellenarYValidarCodigo(otp.code);
       }
-    }).catch(() => { });
+    }).catch(() => { 
+      // SOLUCIÓN AL BLOQUEO: Si rechazas el diálogo de Google, forzamos la liberación del teclado
+      setTimeout(() => {
+        if (inputs && inputs[0]) {
+          inputs[0].focus(); // Devuelve el cursor parpadeante al primer recuadro
+        }
+      }, 100);
+    });
   }
 
   // Cazador de errores visual en pantalla
@@ -192,8 +198,6 @@
   // ============================================================
   function configurarCasillasOTP() {
     if (!isIOS) activarEscuchaWebOTPAndroid();
-
-    // SE ELIMINÓ EL BLOQUEO DE FOCO PARA RECUPERAR EL CURSOR PARPADEANTE MANUAL
 
     inputs.forEach((input, index) => {
       input.setAttribute("maxlength", "1");
