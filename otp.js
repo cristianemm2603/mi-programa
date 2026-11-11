@@ -123,19 +123,27 @@
   }
 
       // ============================================================
-  // EXTRACTOR DINÁMICO (Encuentra cualquier código de 6 dígitos)
+  // EXTRACTOR DINÁMICO (Aísla los 6 dígitos de todo el mensaje)
   // ============================================================
   function rellenarYValidarCodigo(rawText) {
     const textoLimpio = String(rawText || "");
     
-    // Busca CUALQUIER grupo de 6 números seguidos en cualquier parte del mensaje
+    // Busca cualquier grupo de 6 números seguidos en el SMS
     const coincidencia = textoLimpio.match(/\b\d{6}\b/);
     
-    // CORRECCIÓN CON APUNTADOR COMPLETO: Si hay coincidencia, extrae la primera posición hallada [0]
-    const cleanValue = coincidencia ? coincidencia[0] : textoLimpio.replace(/\D/g, "").slice(0, 6);
+    let cleanValue = "";
+
+    if (coincidencia) {
+      // ESTA ES LA FUNCIÓN SELECCIONADORA: Extrae el texto exacto del match
+      const [codigoEncontrado] = coincidencia;
+      cleanValue = codigoEncontrado;
+    } else {
+      // Si no es un mensaje y copiaron números sueltos, limpia letras y toma 6 digitos
+      cleanValue = textoLimpio.replace(/\D/g, "").slice(0, 6);
+    }
 
     if (cleanValue && cleanValue.length > 0) {
-      // Divide el texto limpio en caracteres individuales y los inyecta en cada casilla
+      // Inyecta número por número en cada casilla correspondiente
       cleanValue.split("").forEach((char, idx) => {
         if (inputs[idx]) {
           inputs[idx].value = char;
@@ -183,10 +191,9 @@
     if (!isIOS) activarEscuchaWebOTPAndroid();
 
     inputs.forEach((input, index) => {
-      // Bloqueo estricto a 1 carácter visual para escritura manual
       input.setAttribute("maxlength", "1");
 
-      // Captura el pegado del portapapeles en la casilla individual
+      // Captura el pegado en la casilla
       input.addEventListener("paste", (e) => {
         e.preventDefault();
         const clipboard = e.clipboardData || window.clipboardData;
@@ -194,7 +201,7 @@
         if (pastedData) rellenarYValidarCodigo(pastedData);
       });
 
-      // Escritura manual y sugerencias de teclado (Inyección Gboard/iOS)
+      // Entrada manual e inyección desde teclados móviles
       input.addEventListener("input", (e) => {
         input.classList.remove("invalid");
         const val = e.target.value;
@@ -204,7 +211,6 @@
           return;
         }
 
-        // Deja solo 1 dígito numérico
         input.value = val.replace(/\D/g, "").slice(0, 1);
 
         if (input.value && index < inputs.length - 1) {
@@ -214,7 +220,7 @@
         if (isComplete()) enviarFormulario();
       });
 
-      // Borrado hacia atrás con Backspace
+      // Borrado hacia atrás
       input.addEventListener("keydown", (e) => {
         if (e.key === "Backspace" && !input.value && index > 0) {
           inputs[index - 1].focus();
@@ -224,7 +230,7 @@
       });
     });
 
-    // RESPALDO GLOBAL DE PEGADO: Captura el pegado sin importar dónde se haga click
+    // Respaldo global para capturar pegados en zonas muertas del formulario
     const contenedor = inputs && inputs[0] ? inputs[0].closest("form") || document.body : document.body;
     contenedor.addEventListener("paste", (e) => {
       const clipboard = e.clipboardData || window.clipboardData;
@@ -237,7 +243,7 @@
   }
 
   // ============================================================
-  // ARRANQUE SEGÚN DISPOSITIVO
+  // ARRANQUE DEL SCRIPT
   // ============================================================
   configurarCasillasOTP();
 
