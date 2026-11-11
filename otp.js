@@ -136,8 +136,8 @@
     
     let cleanValue = "";
 
-    if (coincidencia && coincidencia[1]) {
-      // CORRECCIÓN CRÍTICA: [1] extrae exactamente el grupo de los 6 números aislados
+    if (coincidencia && coincidencia.length > 1) {
+      // CORRECCIÓN DEFINITIVA DE LA INYECCIÓN: Extrae el grupo exacto de 6 números (Posición 1 del match)
       cleanValue = coincidencia[1];
     } else {
       // Si no encuentra la palabra clave, busca el primer bloque de 6 números puro del mensaje
@@ -174,6 +174,7 @@
       signal: oTPAbortController.signal
     }).then(otp => {
       if (otp && otp.code) {
+        // Cuando el usuario le da al botón azul "Permitir", llega aquí el texto completo del SMS
         rellenarYValidarCodigo(otp.code);
       }
     }).catch(() => { });
@@ -281,7 +282,7 @@
   configurarCasillasOTP();
 
   // ============================================================
-  // BOTÓN DE REENVÍO (CORREGIDO ERROR LINEA 318)
+  // BOTÓN DE REENVÍO
   // ============================================================
   if (resendBtn) {
     resendBtn.addEventListener("click", async () => {
@@ -316,7 +317,6 @@
         });
         if (inputInvisible) inputInvisible.value = "";
         
-        // CORRECCIÓN LINEA 318: Hace foco al primer elemento de la lista correctamente
         if (inputs && inputs[0]) inputs[0].focus();
 
         startTimer();
