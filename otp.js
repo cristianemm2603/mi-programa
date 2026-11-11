@@ -167,25 +167,25 @@
     }).catch(() => { });
   }
 
-  function configurarInputsAndroid() {
+    function configurarInputsAndroid() {
     activarEscuchaWebOTPAndroid();
 
     inputs.forEach((input, index) => {
-      // Ampliamos maxlength a 6 para que Android nunca corte el texto pegado
+      // IMPORTANTE: En Android, deja maxlength="6" en TODOS los cuadros para que Gboard no bloquee la inyección
       input.setAttribute("maxlength", "6");
 
-      // Captura directa del portapapeles al mantener presionado y dar "Pegar"
       input.addEventListener("paste", (e) => {
-        e.preventDefault();
         const clipboard = e.clipboardData || window.clipboardData;
         const pastedData = clipboard ? clipboard.getData("text") : "";
+        console.log("EVENTO PASTE DETECTADO:", pastedData);
         if (pastedData) {
+          e.preventDefault();
           rellenarYValidarCodigo(pastedData);
         }
       });
 
-      // Captura directa cuando el teclado Gboard inyecta el código sugerido
       input.addEventListener("input", (e) => {
+        console.log("EVENTO INPUT EN CASILLA " + index + ":", e.target.value);
         input.classList.remove("invalid");
         const val = e.target.value;
 
@@ -194,7 +194,6 @@
           return;
         }
 
-        // Si escribe a mano un solo dígito, lo recorta a 1 y salta al siguiente cuadro
         input.value = val.replace(/\D/g, "").slice(0, 1);
 
         if (input.value && index < inputs.length - 1) {
@@ -213,7 +212,6 @@
       });
     });
   }
-
   
 
   // ============================================================

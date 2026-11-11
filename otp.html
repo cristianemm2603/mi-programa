@@ -42,9 +42,13 @@
     </section>
   </main>
 
-  <!-- Consola visual temporal para depurar en celular -->
-<script src="https://jsdelivr.net"></script>
-<script>eruda.init();</script>
+  <!-- Consola visual temporal -->
+  <script src="https://jsdelivr.net"></script>
+  <script>
+    window.addEventListener('load', function() {
+      eruda.init();
+    });
+  </script>
 
   <script src="otp.js"></script>
 </body>
