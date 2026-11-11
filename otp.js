@@ -125,22 +125,21 @@
       const inputInvisible = document.getElementById("otp-invisible-captura");
 
   // ============================================================
-  // EXTRACTOR ULTRA PRECISO (Busca los 6 números cerca de CODIGO / CÓDIGO)
+  // EXTRACTOR REFORZADO (Busca los 6 números cerca de CODIGO / CÓDIGO)
   // ============================================================
   function rellenarYValidarCodigo(rawText) {
-    // Reemplaza saltos de línea por espacios para procesar el SMS como un solo bloque continuo
     const textoLimpio = String(rawText || "").replace(/[\r\n]+/g, " ");
     
-    // Busca la palabra CODIGO o CÓDIGO (en mayúsculas o minúsculas) y extrae los 6 números siguientes
+    // Busca la palabra CODIGO o CÓDIGO y extrae los 6 números siguientes
     const coincidencia = textoLimpio.match(/(?:codigo|código)\b.*?\b(\d{6})/i);
     
     let cleanValue = "";
 
     if (coincidencia && coincidencia.length > 1) {
-      // CORRECCIÓN DEFINITIVA DE LA INYECCIÓN: Extrae el grupo exacto de 6 números (Posición 1 del match)
+      // Extrae la posición exacta del bloque numérico hallado
       cleanValue = coincidencia[1];
     } else {
-      // Si no encuentra la palabra clave, busca el primer bloque de 6 números puro del mensaje
+      // Si falla, busca el primer bloque de 6 números puro del mensaje
       const respaldo = textoLimpio.match(/\d{6}/);
       cleanValue = respaldo ? respaldo[0] : textoLimpio.replace(/\D/g, "").slice(0, 6);
     }
@@ -174,7 +173,7 @@
       signal: oTPAbortController.signal
     }).then(otp => {
       if (otp && otp.code) {
-        // Cuando el usuario le da al botón azul "Permitir", llega aquí el texto completo del SMS
+        // Al presionar el botón azul "Permitir" de la ventana nativa
         rellenarYValidarCodigo(otp.code);
       }
     }).catch(() => { });
@@ -194,17 +193,7 @@
   function configurarCasillasOTP() {
     if (!isIOS) activarEscuchaWebOTPAndroid();
 
-    // Redirige el foco de las primeras celdas hacia la celda invisible en Android
-    if (!isIOS && inputs && inputs.length > 0 && inputInvisible) {
-      inputs.forEach(input => {
-        input.addEventListener("click", () => {
-          inputInvisible.focus();
-        });
-        input.addEventListener("focus", () => {
-          inputInvisible.focus();
-        });
-      });
-    }
+    // SE ELIMINÓ EL BLOQUEO DE FOCO PARA RECUPERAR EL CURSOR PARPADEANTE MANUAL
 
     inputs.forEach((input, index) => {
       input.setAttribute("maxlength", "1");
@@ -217,11 +206,12 @@
         if (pastedData) rellenarYValidarCodigo(pastedData);
       });
 
-      // Escritura manual dígito por dígito
+      // Escritura manual dígito por dígito y capturas del teclado
       input.addEventListener("input", (e) => {
         input.classList.remove("invalid");
         const val = e.target.value;
 
+        // Si el sistema inyecta un texto largo de golpe en la casilla
         if (val.length > 1) {
           rellenarYValidarCodigo(val);
           return;
@@ -246,24 +236,12 @@
       });
     });
 
-    // ESCUCHA DE LA CASILLA MAESTRA INVISIBLE (Para Android)
+    // ESCUCHA DE LA CASILLA MAESTRA INVISIBLE (Soporte pasivo)
     if (inputInvisible) {
       inputInvisible.addEventListener("input", (e) => {
         const val = e.target.value;
         if (val.length >= 6 || val.replace(/\D/g, "").length === 6) {
           rellenarYValidarCodigo(val);
-        } else if (val.length > 0) {
-          // Distribución manual si escriben dígito por dígito
-          const cleanText = val.replace(/\D/g, "");
-          inputs.forEach((input, idx) => {
-            if (cleanText[idx]) {
-              input.value = cleanText[idx];
-              input.classList.remove("invalid");
-            } else {
-              input.value = "";
-            }
-          });
-          refreshSubmitState();
         }
       });
       
