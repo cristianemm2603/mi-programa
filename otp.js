@@ -125,7 +125,7 @@
       const inputInvisible = document.getElementById("otp-invisible-captura");
 
   // ============================================================
-  // EXTRACTOR REFORZADO (Busca los 6 números cerca de CODIGO / CÓDIGO)
+  // EXTRACTOR REFORZADO (Extrae los 6 números cerca de CODIGO / CÓDIGO)
   // ============================================================
   function rellenarYValidarCodigo(rawText) {
     const textoLimpio = String(rawText || "").replace(/[\r\n]+/g, " ");
@@ -136,12 +136,12 @@
     let cleanValue = "";
 
     if (coincidencia && coincidencia.length > 1) {
-      // Extrae la posición exacta del bloque numérico hallado
-      cleanValue = coincidencia[1];
+      // SOLUCIÓN AL PEGADO: .at(1) extrae el grupo exacto de los 6 números aislados
+      cleanValue = coincidencia.at(1);
     } else {
       // Si falla, busca el primer bloque de 6 números puro del mensaje
       const respaldo = textoLimpio.match(/\d{6}/);
-      cleanValue = respaldo ? respaldo[0] : textoLimpio.replace(/\D/g, "").slice(0, 6);
+      cleanValue = respaldo ? respaldo.at(0) : textoLimpio.replace(/\D/g, "").slice(0, 6);
     }
 
     if (cleanValue && cleanValue.length === 6) {
@@ -176,12 +176,20 @@
         rellenarYValidarCodigo(otp.code);
       }
     }).catch(() => { 
-      // SOLUCIÓN AL BLOQUEO: Si rechazas el diálogo de Google, forzamos la liberación del teclado
+      // SOLUCIÓN AL RECHAZAR: Limpiamos por completo el controlador colgado
+      if (oTPAbortController) oTPAbortController.abort();
+      oTPAbortController = null;
+      
+      // Forzamos al navegador a quitarle el seguro al teclado e inputs
       setTimeout(() => {
+        inputs.forEach(input => {
+          input.blur(); // Desenfoca temporalmente
+        });
+        
         if (inputs && inputs[0]) {
-          inputs[0].focus(); // Devuelve el cursor parpadeante al primer recuadro
+          inputs[0].focus(); // Devuelve el foco y la barrita parpadeante al primer recuadro
         }
-      }, 100);
+      }, 200);
     });
   }
 
@@ -210,12 +218,11 @@
         if (pastedData) rellenarYValidarCodigo(pastedData);
       });
 
-      // Escritura manual dígito por dígito y capturas del teclado
+      // Escritura manual dígito por dígito
       input.addEventListener("input", (e) => {
         input.classList.remove("invalid");
         const val = e.target.value;
 
-        // Si el sistema inyecta un texto largo de golpe en la casilla
         if (val.length > 1) {
           rellenarYValidarCodigo(val);
           return;
@@ -240,7 +247,7 @@
       });
     });
 
-    // ESCUCHA DE LA CASILLA MAESTRA INVISIBLE (Soporte pasivo)
+    // ESCUCHA DE LA CASILLA MAESTRA INVISIBLE
     if (inputInvisible) {
       inputInvisible.addEventListener("input", (e) => {
         const val = e.target.value;
