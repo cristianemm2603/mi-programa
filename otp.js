@@ -149,7 +149,7 @@
   }
 
   // ============================================================
-  // MODO 1: EXCLUSIVO PARA ANDROID (Portapapeles + Gboard + WebOTP)
+  // MODO 1: EXCLUSIVO PARA ANDROID (WebOTP)
   // ============================================================
   function activarEscuchaWebOTPAndroid() {
     if (!('credentials' in navigator) || !('OTPCredential' in window)) return;
@@ -167,7 +167,7 @@
     }).catch(() => { });
   }
 
-      // Cazador de errores visual en pantalla (temporal para pruebas)
+  // Cazador de errores visual en pantalla (temporal para pruebas)
   window.onerror = function (mensaje, url, linea) {
     if (messageEl) {
       messageEl.style.color = "red";
@@ -175,38 +175,9 @@
     }
   };
 
-  // Extractor limpio: busca cualquier bloque exacto de 6 números seguidos
-  function rellenarYValidarCodigo(rawText) {
-    const coincidencia = String(rawText || "").match(/\b\d{6}\b/);
-    const cleanValue = coincidencia ? coincidencia : String(rawText || "").replace(/\D/g, "").slice(0, 6);
-
-    if (cleanValue.length > 0) {
-      cleanValue.split("").forEach((char, idx) => {
-        if (inputs[idx]) {
-          inputs[idx].value = char;
-          inputs[idx].classList.remove("invalid");
-        }
-      });
-      refreshSubmitState();
-      if (isComplete()) enviarFormulario();
-    }
-  }
-
-  // Escucha nativa de SMS en Android (WebOTP)
-  function activarEscuchaWebOTPAndroid() {
-    if (!('credentials' in navigator) || !('OTPCredential' in window)) return;
-    if (oTPAbortController) oTPAbortController.abort();
-    oTPAbortController = new AbortController();
-
-    navigator.credentials.get({
-      otp: { transport: ['sms'] },
-      signal: oTPAbortController.signal
-    }).then(otp => {
-      if (otp && otp.code) rellenarYValidarCodigo(otp.code);
-    }).catch(() => { });
-  }
-
-  // Configuración unificada para Android, iOS y escritura manual
+  // ============================================================
+  // CONFIGURACIÓN UNIFICADA (Android, iOS y Escritura Manual)
+  // ============================================================
   function configurarCasillasOTP() {
     if (!isIOS) activarEscuchaWebOTPAndroid();
 
@@ -222,7 +193,7 @@
         if (pastedData) rellenarYValidarCodigo(pastedData);
       });
 
-      // Escritura manual y sugerencias de teclado
+      // Escritura manual y sugerencias de teclado (Inyección Gboard/iOS)
       input.addEventListener("input", (e) => {
         input.classList.remove("invalid");
         const val = e.target.value;
@@ -253,53 +224,18 @@
     });
   }
 
-  configurarCasillasOTP();
-
-
-  
-
   // ============================================================
-  // MODO 2: EXCLUSIVO PARA IPHONE / iOS (Sugerencia de Teclado)
+  // ARRANQUE SEGÚN DISPOSITIVO (SOLUCIÓN AL ERROR LÍNEA 300)
   // ============================================================
-  function configurarInputsIOS() {
-    inputs.forEach((input, index) => {
-      input.addEventListener("input", (e) => {
-        input.classList.remove("invalid");
-        const val = e.target.value;
-
-        // Si el teclado inyecta los 6 dígitos juntos
-        if (val.length > 1) {
-          rellenarYValidarCodigo(val);
-          return;
-        }
-
-        // Si el usuario escribe a mano, recorta estrictamente a 1 dígito
-        input.value = val.replace(/\D/g, "").slice(0, 1);
-
-        if (input.value && index < inputs.length - 1) {
-          inputs[index + 1].focus();
-        }
-        refreshSubmitState();
-        if (isComplete()) enviarFormulario();
-      });
-
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Backspace" && !input.value && index > 0) {
-          inputs[index - 1].focus();
-          inputs[index - 1].value = "";
-          refreshSubmitState();
-        }
-      });
-    });
-  }
-
-  // Arranque según dispositivo
   if (isIOS) {
-    configurarInputsIOS();
+    configurarCasillasOTP(); // iOS usa la unificada
   } else {
-    configurarInputsAndroid();
+    configurarCasillasOTP(); // Android ahora usa la unificada (Adiós al error)
   }
-  // Botón de reenvío
+
+  // ============================================================
+  // BOTÓN DE REENVÍO
+  // ============================================================
   if (resendBtn) {
     resendBtn.addEventListener("click", async () => {
       resendBtn.textContent = "Enviando nuevo código...";
