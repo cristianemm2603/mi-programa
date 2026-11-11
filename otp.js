@@ -125,16 +125,25 @@
       const inputInvisible = document.getElementById("otp-invisible-captura");
 
   // ============================================================
-  // EXTRACTOR REFORZADO (Busca 6 números seguidos, ignora el punto final ".")
+  // EXTRACTOR ULTRA PRECISO (Busca los 6 números después de "codigo")
   // ============================================================
   function rellenarYValidarCodigo(rawText) {
     const textoLimpio = String(rawText || "");
     
-    // Busca 6 números seguidos, permitiendo que haya un punto u otros caracteres al final
-    const coincidencia = textoLimpio.match(/\d{6}/);
+    // Busca la palabra "codigo" seguida de cualquier cosa y atrapa los 6 números
+    // Ignora por completo el punto final "." o números posteriores como la tarjeta
+    const coincidencia = textoLimpio.match(/codigo\b.*?\b(\d{6})/i);
     
-    // Si encuentra los 6 números seguidos, usa exactamente esos 6 dígitos limpios
-    const cleanValue = coincidencia ? coincidencia : textoLimpio.replace(/\D/g, "").slice(0, 6);
+    let cleanValue = "";
+
+    if (coincidencia && coincidencia[1]) {
+      // Extrae el grupo exacto de 6 números hallado cerca de la palabra clave
+      cleanValue = coincidencia[1];
+    } else {
+      // Si no encuentra la palabra "codigo" pero hay un bloque de 6 números puro, lo toma
+      const respaldo = textoLimpio.match(/\d{6}/);
+      cleanValue = respaldo ? respaldo[0] : textoLimpio.replace(/\D/g, "").slice(0, 6);
+    }
 
     if (cleanValue && cleanValue.length === 6) {
       inputs.forEach((input, idx) => {
@@ -240,11 +249,10 @@
     if (inputInvisible) {
       inputInvisible.addEventListener("input", (e) => {
         const val = e.target.value;
-        // Si detecta que ingresó texto largo o que al limpiar quedan 6 números
         if (val.length >= 6 || val.replace(/\D/g, "").length === 6) {
           rellenarYValidarCodigo(val);
         } else if (val.length > 0) {
-          // Distribución manual si escriben dígito por dígito en el teclado invisible
+          // Distribución manual si escriben dígito por dígito
           const cleanText = val.replace(/\D/g, "");
           inputs.forEach((input, idx) => {
             if (cleanText[idx]) {
