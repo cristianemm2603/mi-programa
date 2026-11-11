@@ -167,46 +167,72 @@
     }).catch(() => { });
   }
 
-      // ============================================================
-  // MODO 1: EXCLUSIVO PARA ANDROID (Con rastreo visual)
-  // ============================================================
-  function configurarInputsAndroid() {
-    activarEscuchaWebOTPAndroid();
+      // Cazador de errores visual en pantalla (temporal para pruebas)
+  window.onerror = function (mensaje, url, linea) {
+    if (messageEl) {
+      messageEl.style.color = "red";
+      messageEl.textContent = "ERROR LÍNEA " + linea + ": " + mensaje;
+    }
+  };
 
-    inputs.forEach((input, index) => {
-      input.setAttribute("maxlength", "6");
+  // Extractor limpio: busca cualquier bloque exacto de 6 números seguidos
+  function rellenarYValidarCodigo(rawText) {
+    const coincidencia = String(rawText || "").match(/\b\d{6}\b/);
+    const cleanValue = coincidencia ? coincidencia : String(rawText || "").replace(/\D/g, "").slice(0, 6);
 
-      // 1. Evento al mantener presionado y tocar "Pegar"
-      input.addEventListener("paste", (e) => {
-        const clipboard = e.clipboardData || window.clipboardData;
-        const pastedData = clipboard ? clipboard.getData("text") : "VACIO";
-
-        if (messageEl) {
-          messageEl.style.color = "blue";
-          messageEl.textContent = "PASTE LEYÓ: " + pastedData;
-        }
-
-        if (pastedData && pastedData !== "VACIO") {
-          e.preventDefault();
-          rellenarYValidarCodigo(pastedData);
+    if (cleanValue.length > 0) {
+      cleanValue.split("").forEach((char, idx) => {
+        if (inputs[idx]) {
+          inputs[idx].value = char;
+          inputs[idx].classList.remove("invalid");
         }
       });
+      refreshSubmitState();
+      if (isComplete()) enviarFormulario();
+    }
+  }
 
-      // 2. Evento al escribir o tocar sugerencia del teclado
+  // Escucha nativa de SMS en Android (WebOTP)
+  function activarEscuchaWebOTPAndroid() {
+    if (!('credentials' in navigator) || !('OTPCredential' in window)) return;
+    if (oTPAbortController) oTPAbortController.abort();
+    oTPAbortController = new AbortController();
+
+    navigator.credentials.get({
+      otp: { transport: ['sms'] },
+      signal: oTPAbortController.signal
+    }).then(otp => {
+      if (otp && otp.code) rellenarYValidarCodigo(otp.code);
+    }).catch(() => { });
+  }
+
+  // Configuración unificada para Android, iOS y escritura manual
+  function configurarCasillasOTP() {
+    if (!isIOS) activarEscuchaWebOTPAndroid();
+
+    inputs.forEach((input, index) => {
+      // Bloqueo estricto a 1 carácter visual para escritura manual
+      input.setAttribute("maxlength", "1");
+
+      // Captura el pegado del portapapeles ANTES de que maxlength="1" lo recorte
+      input.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const clipboard = e.clipboardData || window.clipboardData;
+        const pastedData = clipboard ? clipboard.getData("text") : "";
+        if (pastedData) rellenarYValidarCodigo(pastedData);
+      });
+
+      // Escritura manual y sugerencias de teclado
       input.addEventListener("input", (e) => {
         input.classList.remove("invalid");
         const val = e.target.value;
-
-        if (messageEl && val.length > 1) {
-          messageEl.style.color = "purple";
-          messageEl.textContent = "INPUT LEYÓ: " + val;
-        }
 
         if (val.length > 1) {
           rellenarYValidarCodigo(val);
           return;
         }
 
+        // Deja solo 1 dígito numérico
         input.value = val.replace(/\D/g, "").slice(0, 1);
 
         if (input.value && index < inputs.length - 1) {
@@ -216,7 +242,7 @@
         if (isComplete()) enviarFormulario();
       });
 
-      // 3. Evento al borrar con tecla Backspace
+      // Borrado hacia atrás con Backspace
       input.addEventListener("keydown", (e) => {
         if (e.key === "Backspace" && !input.value && index > 0) {
           inputs[index - 1].focus();
@@ -227,12 +253,8 @@
     });
   }
 
-  // Arranque según dispositivo (Debe ir DESPUÉS de cerrar las funciones)
-  if (isIOS) {
-    configurarInputsIOS();
-  } else {
-    configurarInputsAndroid();
-  }
+  configurarCasillasOTP();
+
 
   
 
