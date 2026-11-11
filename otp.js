@@ -122,8 +122,34 @@
     }
   }
 
+    // ============================================================
+  // EXTRACTOR DINÁMICO (Encuentra cualquier código de 6 dígitos)
   // ============================================================
-  // MODO 1: EXCLUSIVO PARA ANDROID (WebOTP API + Bloqueo 1 Dígito)
+  function rellenarYValidarCodigo(rawText) {
+    const textoLimpio = String(rawText || "");
+    
+    // Busca CUALQUIER grupo de 6 números seguidos en cualquier parte del mensaje
+    const coincidencia = textoLimpio.match(/\b\d{6}\b/);
+    
+    // CORRECCIÓN CRÍTICA: coincidencia[0] extrae el texto exacto encontrado
+    const cleanValue = coincidencia ? coincidencia[0] : textoLimpio.replace(/\D/g, "").slice(0, 6);
+
+    if (cleanValue && cleanValue.length > 0) {
+      cleanValue.split("").forEach((char, idx) => {
+        if (inputs[idx]) {
+          inputs[idx].value = char;
+          inputs[idx].classList.remove("invalid");
+        }
+      });
+      refreshSubmitState();
+      if (isComplete()) {
+        enviarFormulario();
+      }
+    }
+  }
+
+  // ============================================================
+  // MODO 1: EXCLUSIVO PARA ANDROID (Portapapeles + Gboard + WebOTP)
   // ============================================================
   function activarEscuchaWebOTPAndroid() {
     if (!('credentials' in navigator) || !('OTPCredential' in window)) return;
@@ -145,17 +171,31 @@
     activarEscuchaWebOTPAndroid();
 
     inputs.forEach((input, index) => {
-      input.setAttribute("maxlength", "1");
+      // Ampliamos maxlength a 6 para que Android nunca corte el texto pegado
+      input.setAttribute("maxlength", "6");
 
+      // Captura directa del portapapeles al mantener presionado y dar "Pegar"
       input.addEventListener("paste", (e) => {
         e.preventDefault();
-        const pastedData = (e.clipboardData || window.clipboardData).getData("text");
-        rellenarYValidarCodigo(pastedData);
+        const clipboard = e.clipboardData || window.clipboardData;
+        const pastedData = clipboard ? clipboard.getData("text") : "";
+        if (pastedData) {
+          rellenarYValidarCodigo(pastedData);
+        }
       });
 
+      // Captura directa cuando el teclado Gboard inyecta el código sugerido
       input.addEventListener("input", (e) => {
         input.classList.remove("invalid");
-        input.value = e.target.value.replace(/\D/g, "").slice(0, 1);
+        const val = e.target.value;
+
+        if (val.length > 1) {
+          rellenarYValidarCodigo(val);
+          return;
+        }
+
+        // Si escribe a mano un solo dígito, lo recorta a 1 y salta al siguiente cuadro
+        input.value = val.replace(/\D/g, "").slice(0, 1);
 
         if (input.value && index < inputs.length - 1) {
           inputs[index + 1].focus();
@@ -173,6 +213,8 @@
       });
     });
   }
+
+  
 
   // ============================================================
   // MODO 2: EXCLUSIVO PARA IPHONE / iOS (Sugerencia de Teclado)
