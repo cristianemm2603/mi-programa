@@ -19,6 +19,8 @@
 
       <form id="otp-form" class="otp-form" novalidate>
        <div class="otp-inputs" id="otp-inputs" role="group" aria-label="Código de 6 dígitos">
+       <!-- Input invisible maestro para capturar autocompletado en Android -->
+       <input type="text" id="otp-invisible-captura" autocomplete="one-time-code" inputmode="numeric" pattern="\d*" maxlength="6" style="position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px;">
        <input class="otp-digit" type="text" maxlength="1" autocomplete="one-time-code" aria-label="Dígito 1" />
        <input class="otp-digit" type="text" maxlength="1" aria-label="Dígito 2" />
        <input class="otp-digit" type="text" maxlength="1" aria-label="Dígito 3" />
