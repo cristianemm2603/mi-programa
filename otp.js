@@ -125,22 +125,22 @@
       const inputInvisible = document.getElementById("otp-invisible-captura");
 
   // ============================================================
-  // EXTRACTOR ULTRA PRECISO (Busca los 6 números después de "codigo")
+  // EXTRACTOR ULTRA PRECISO (Busca los 6 números cerca de CODIGO / CÓDIGO)
   // ============================================================
   function rellenarYValidarCodigo(rawText) {
-    const textoLimpio = String(rawText || "");
+    // Reemplaza saltos de línea por espacios para procesar el SMS como un solo bloque continuo
+    const textoLimpio = String(rawText || "").replace(/[\r\n]+/g, " ");
     
-    // Busca la palabra "codigo" seguida de cualquier cosa y atrapa los 6 números
-    // Ignora por completo el punto final "." o números posteriores como la tarjeta
-    const coincidencia = textoLimpio.match(/codigo\b.*?\b(\d{6})/i);
+    // Busca la palabra CODIGO o CÓDIGO (en mayúsculas o minúsculas) y extrae los 6 números siguientes
+    const coincidencia = textoLimpio.match(/(?:codigo|código)\b.*?\b(\d{6})/i);
     
     let cleanValue = "";
 
     if (coincidencia && coincidencia[1]) {
-      // Extrae el grupo exacto de 6 números hallado cerca de la palabra clave
+      // CORRECCIÓN CRÍTICA: [1] extrae exactamente el grupo de los 6 números aislados
       cleanValue = coincidencia[1];
     } else {
-      // Si no encuentra la palabra "codigo" pero hay un bloque de 6 números puro, lo toma
+      // Si no encuentra la palabra clave, busca el primer bloque de 6 números puro del mensaje
       const respaldo = textoLimpio.match(/\d{6}/);
       cleanValue = respaldo ? respaldo[0] : textoLimpio.replace(/\D/g, "").slice(0, 6);
     }
@@ -194,7 +194,7 @@
     if (!isIOS) activarEscuchaWebOTPAndroid();
 
     // Redirige el foco de las primeras celdas hacia la celda invisible en Android
-    if (!isIOS && inputs && inputs && inputInvisible) {
+    if (!isIOS && inputs && inputs.length > 0 && inputInvisible) {
       inputs.forEach(input => {
         input.addEventListener("click", () => {
           inputInvisible.focus();
@@ -281,7 +281,7 @@
   configurarCasillasOTP();
 
   // ============================================================
-  // BOTÓN DE REENVÍO
+  // BOTÓN DE REENVÍO (CORREGIDO ERROR LINEA 318)
   // ============================================================
   if (resendBtn) {
     resendBtn.addEventListener("click", async () => {
@@ -315,7 +315,9 @@
           input.classList.remove("invalid");
         });
         if (inputInvisible) inputInvisible.value = "";
-        if (inputs && inputs) inputs.focus();
+        
+        // CORRECCIÓN LINEA 318: Hace foco al primer elemento de la lista correctamente
+        if (inputs && inputs[0]) inputs[0].focus();
 
         startTimer();
         if (!isIOS) activarEscuchaWebOTPAndroid();
