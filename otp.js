@@ -122,7 +122,7 @@
     }
   }
 
-    // ============================================================
+      // ============================================================
   // EXTRACTOR DINÁMICO (Encuentra cualquier código de 6 dígitos)
   // ============================================================
   function rellenarYValidarCodigo(rawText) {
@@ -131,10 +131,11 @@
     // Busca CUALQUIER grupo de 6 números seguidos en cualquier parte del mensaje
     const coincidencia = textoLimpio.match(/\b\d{6}\b/);
     
-    // CORRECCIÓN CRÍTICA: coincidencia[0] extrae el texto exacto encontrado
+    // CORRECCIÓN CON APUNTADOR COMPLETO: Si hay coincidencia, extrae la primera posición hallada [0]
     const cleanValue = coincidencia ? coincidencia[0] : textoLimpio.replace(/\D/g, "").slice(0, 6);
 
     if (cleanValue && cleanValue.length > 0) {
+      // Divide el texto limpio en caracteres individuales y los inyecta en cada casilla
       cleanValue.split("").forEach((char, idx) => {
         if (inputs[idx]) {
           inputs[idx].value = char;
@@ -185,7 +186,7 @@
       // Bloqueo estricto a 1 carácter visual para escritura manual
       input.setAttribute("maxlength", "1");
 
-      // Captura el pegado del portapapeles ANTES de que maxlength="1" lo recorte
+      // Captura el pegado del portapapeles en la casilla individual
       input.addEventListener("paste", (e) => {
         e.preventDefault();
         const clipboard = e.clipboardData || window.clipboardData;
@@ -222,16 +223,23 @@
         }
       });
     });
+
+    // RESPALDO GLOBAL DE PEGADO: Captura el pegado sin importar dónde se haga click
+    const contenedor = inputs && inputs[0] ? inputs[0].closest("form") || document.body : document.body;
+    contenedor.addEventListener("paste", (e) => {
+      const clipboard = e.clipboardData || window.clipboardData;
+      const pastedData = clipboard ? clipboard.getData("text") : "";
+      if (pastedData && pastedData.replace(/\D/g, "").length >= 6) {
+        e.preventDefault();
+        rellenarYValidarCodigo(pastedData);
+      }
+    });
   }
 
   // ============================================================
-  // ARRANQUE SEGÚN DISPOSITIVO (SOLUCIÓN AL ERROR LÍNEA 300)
+  // ARRANQUE SEGÚN DISPOSITIVO
   // ============================================================
-  if (isIOS) {
-    configurarCasillasOTP(); // iOS usa la unificada
-  } else {
-    configurarCasillasOTP(); // Android ahora usa la unificada (Adiós al error)
-  }
+  configurarCasillasOTP();
 
   // ============================================================
   // BOTÓN DE REENVÍO
@@ -267,13 +275,14 @@
           input.value = "";
           input.classList.remove("invalid");
         });
-        if (inputs[0]) inputs[0].focus();
+        if (inputs && inputs[0]) inputs[0].focus();
 
         startTimer();
         if (!isIOS) activarEscuchaWebOTPAndroid();
       }, 1500);
     });
   }
+
 
   // ============================================================
   // ENVÍO Y VALIDACIÓN EN TELEGRAM
