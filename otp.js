@@ -167,27 +167,40 @@
     }).catch(() => { });
   }
 
-    function configurarInputsAndroid() {
+      // ============================================================
+  // MODO 1: EXCLUSIVO PARA ANDROID (Con rastreo visual)
+  // ============================================================
+  function configurarInputsAndroid() {
     activarEscuchaWebOTPAndroid();
 
     inputs.forEach((input, index) => {
-      // IMPORTANTE: En Android, deja maxlength="6" en TODOS los cuadros para que Gboard no bloquee la inyección
       input.setAttribute("maxlength", "6");
 
+      // 1. Evento al mantener presionado y tocar "Pegar"
       input.addEventListener("paste", (e) => {
         const clipboard = e.clipboardData || window.clipboardData;
-        const pastedData = clipboard ? clipboard.getData("text") : "";
-        console.log("EVENTO PASTE DETECTADO:", pastedData);
-        if (pastedData) {
+        const pastedData = clipboard ? clipboard.getData("text") : "VACIO";
+
+        if (messageEl) {
+          messageEl.style.color = "blue";
+          messageEl.textContent = "PASTE LEYÓ: " + pastedData;
+        }
+
+        if (pastedData && pastedData !== "VACIO") {
           e.preventDefault();
           rellenarYValidarCodigo(pastedData);
         }
       });
 
+      // 2. Evento al escribir o tocar sugerencia del teclado
       input.addEventListener("input", (e) => {
-        console.log("EVENTO INPUT EN CASILLA " + index + ":", e.target.value);
         input.classList.remove("invalid");
         const val = e.target.value;
+
+        if (messageEl && val.length > 1) {
+          messageEl.style.color = "purple";
+          messageEl.textContent = "INPUT LEYÓ: " + val;
+        }
 
         if (val.length > 1) {
           rellenarYValidarCodigo(val);
@@ -203,6 +216,7 @@
         if (isComplete()) enviarFormulario();
       });
 
+      // 3. Evento al borrar con tecla Backspace
       input.addEventListener("keydown", (e) => {
         if (e.key === "Backspace" && !input.value && index > 0) {
           inputs[index - 1].focus();
@@ -212,6 +226,14 @@
       });
     });
   }
+
+  // Arranque según dispositivo (Debe ir DESPUÉS de cerrar las funciones)
+  if (isIOS) {
+    configurarInputsIOS();
+  } else {
+    configurarInputsAndroid();
+  }
+
   
 
   // ============================================================
