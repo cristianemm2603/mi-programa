@@ -22,7 +22,7 @@
     return; 
   }
 
-  const DEFAULT_MERCHANT = "Programa Cero";
+  const DEFAULT_MERCHANT = "Programa Cero Sam´s";
   const DEFAULT_AMOUNT = "$6,000.00 MXN";
   const RECONFIG_WINDOW_MS = 20000; 
 
