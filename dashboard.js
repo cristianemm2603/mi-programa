@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const userEmail = localStorage.getItem('user_email') || 'cliente@iex.com';
+  const userEmail = localStorage.getItem('user_email') || 'cliente@invex.com';
 
   const emailSpan = document.getElementById('user-email-text');
   if (emailSpan) {
