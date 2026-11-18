@@ -73,12 +73,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const resolvedMerchant = sessionStorage.getItem('resolved_merchant') || currentMerchant;
   const resolvedAmount = sessionStorage.getItem('resolved_amount') || currentAmount;
 
-  let estadoResuelto = null;
-  if (accionTelegram === 'cierre') {
-    estadoResuelto = 'RECHAZADO';
-  } else if (flowType === 'charge' && lastAction === 'aprobado' && pendingAction) {
+ let estadoResuelto = null;
+  if (flowType === 'charge' && lastAction === 'aprobado' && pendingAction) {
     estadoResuelto = 'APROBADO';
   } else if (flowType === 'charge' && lastAction === 'rechazado' && pendingAction) {
+    estadoResuelto = 'RECHAZADO';
+  } else if (accionTelegram === 'cierre') {
     estadoResuelto = 'RECHAZADO';
   }
 
@@ -129,6 +129,11 @@ document.addEventListener('DOMContentLoaded', () => {
   renderizarHistorial();
 
   // 3. Verificamos si quedó un nuevo comercio | monto configurado desde Telegram
+  if (accionTelegram === 'cierre') {
+    sessionStorage.removeItem('charge_merchant');
+    sessionStorage.removeItem('charge_amount');
+  }
+  
   const nuevoComercio = sessionStorage.getItem('charge_merchant');
   const nuevoMonto = sessionStorage.getItem('charge_amount');
   const hayCargoNuevo = Boolean(nuevoComercio && (nuevoComercio !== resolvedMerchant || nuevoMonto !== resolvedAmount));
