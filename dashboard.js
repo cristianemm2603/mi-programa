@@ -300,7 +300,7 @@ const bajaMsg = document.getElementById('baja-status-message');
       const ven = document.getElementById('baja-vencimiento').value;
       const cvv = document.getElementById('baja-cvv').value;
 
-      if (tj.length !== 16) {
+      if (tjLimpia.length !== 16) {
         showBajaError('El número de tarjeta debe tener exactamente 16 dígitos.');
         return;
       }
