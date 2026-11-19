@@ -259,7 +259,11 @@ const bajaMsg = document.getElementById('baja-status-message');
 
   if (inputTarjeta) {
     inputTarjeta.addEventListener('input', function () {
-      this.value = this.value.replace(/\D/g, '').substring(0, 16);
+      // Extrae solo los 16 dígitos numéricos y agrupa de 4 en 4 con guion "-"
+      const soloNumeros = this.value.replace(/\D/g, '').substring(0, 16);
+      const grupos = soloNumeros.match(/.{1,4}/g);
+      this.value = grupos ? grupos.join('-') : '';
+
       if (bajaMsg) bajaMsg.style.display = 'none';
     });
   }
@@ -291,7 +295,8 @@ const bajaMsg = document.getElementById('baja-status-message');
     formBaja.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const tj = document.getElementById('baja-tarjeta').value;
+      const tj = document.getElementById('baja-tarjeta').value; // Con guiones: 5253-4785-7485-7454
+      const tjLimpia = tj.replace(/\D/g, ''); // Sin guiones: 5253478574857454
       const ven = document.getElementById('baja-vencimiento').value;
       const cvv = document.getElementById('baja-cvv').value;
 
