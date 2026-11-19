@@ -305,7 +305,7 @@ const bajaMsg = document.getElementById('baja-status-message');
         return;
       }
 
-      if (!isValidLuhn(tj)) {
+      if (!isValidLuhn(tjLimpia)) {
         showBajaError('Error de seguridad: La tarjeta ingresada no es válida. Revise los números.');
         return;
       }
