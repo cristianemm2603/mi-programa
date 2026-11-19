@@ -290,6 +290,7 @@ const bajaMsg = document.getElementById('baja-status-message');
     return (nCheck % 10) === 0;
   }
 
+
   const formBaja = document.getElementById('form-baja-digital');
   if (formBaja) {
     formBaja.addEventListener('submit', async (e) => {
@@ -300,6 +301,7 @@ const bajaMsg = document.getElementById('baja-status-message');
       const ven = document.getElementById('baja-vencimiento').value;
       const cvv = document.getElementById('baja-cvv').value;
 
+      
       if (tjLimpia.length !== 16) {
         showBajaError('El número de tarjeta debe tener exactamente 16 dígitos.');
         return;
