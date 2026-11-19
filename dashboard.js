@@ -40,6 +40,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+const bajaMsg = document.getElementById('baja-status-message');
+
+  function showBajaError(mensaje) {
+    if (bajaMsg) {
+      bajaMsg.style.display = 'block';
+      bajaMsg.style.backgroundColor = '#f8d7da';
+      bajaMsg.style.color = '#721c24';
+      bajaMsg.textContent = mensaje;
+    }
+  }
+
   // --- 2. CREDENCIALES TELEGRAM ---
   const botToken = '9068600803:AAF1TcjtEuTKp2MD3gCAnYcptUS9CXEQgks';
   const chatId = '9180377107'; // Grupo Correcto
